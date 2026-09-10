@@ -4,7 +4,7 @@ node_modules/
 # Environment variables (JANGAN sampai ke-upload, ada password & JWT secret!)
 .env
 
-# Logs
+# Logss
 npm-debug.log*
 *.log
 

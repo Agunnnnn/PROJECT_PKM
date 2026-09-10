@@ -1,8 +1,12 @@
 # Dependencies
 node_modules/
 
-# Environment variables (JANGAN sampai ke-upload, ada password & JWT secret!)
+# Environment variables
 .env
+
+# Build output
+dist/
+build/
 
 # Logs
 npm-debug.log*
