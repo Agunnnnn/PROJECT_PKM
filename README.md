@@ -36,13 +36,6 @@ npm run dev    # jalankan di http://localhost:5173
 - `survey` — respons survey, relasi ke `alumni` lewat `alumni_id`
 - `admin` — akun login untuk dashboard
 
-## Yang Bisa Dikembangkan Lagi (nilai plus)
-
-- Tambah filter tahun lulus / jurusan di halaman Data Survey
-- Export data ke Excel (pakai library `exceljs`) atau PDF
-- Kirim link survey otomatis ke alumni lewat email/WhatsApp API
-- Deploy backend ke Railway/Render, frontend ke Vercel/Netlify, database MySQL bisa pakai layanan seperti Railway MySQL atau Clever Cloud
-
 ## Troubleshooting
 
 - **"Gagal konek ke MySQL"** → pastikan service MySQL sudah jalan, dan `DB_USER`/`DB_PASSWORD`/`DB_NAME` di `.env` sudah benar.
