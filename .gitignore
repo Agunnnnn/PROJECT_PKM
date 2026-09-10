@@ -1,1 +1,18 @@
+# Dependencies
+node_modules/
+
+# Environment variables (JANGAN sampai ke-upload, ada password & JWT secret!)
 .env
+
+# Logs
+npm-debug.log*
+*.log
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+
+# OS files
+.DS_Store
+Thumbs.db
