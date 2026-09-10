@@ -1,15 +1,3 @@
-# Tracer Study — React + Node.js + MySQL
-
-Starter project untuk tugas kelompok SMK Puspita Bangsa.
-
-## Struktur
-
-```
-tracer-study/
-├── server/    -> Backend API (Express + MySQL/mysql2)
-└── client/    -> Frontend (React + Vite)
-```
-
 ## Prasyarat
 
 - Node.js sudah terinstall (cek dengan `node -v`)
@@ -21,10 +9,6 @@ tracer-study/
 cd server
 npm install
 
-# 1. Buat database & tabel: buka MySQL (phpMyAdmin/mysql CLI) lalu jalankan isi file schema.sql
-
-cp .env.example .env
-# edit .env: sesuaikan DB_USER, DB_PASSWORD kalau perlu
 
 npm run seed   # buat akun admin pertama (admin / admin123)
 npm run dev    # jalankan server di http://localhost:5000
@@ -43,10 +27,10 @@ npm run dev    # jalankan di http://localhost:5173
 ## Alur Pemakaian
 
 1. Buka `http://localhost:5173` → halaman publik untuk alumni mengisi form survey.
-2. Buka `http://localhost:5173/login` → login pakai `admin` / `admin123`.
+2. Buka `http://localhost:5173/login` → login pakai
 3. Setelah login, buka menu **Dashboard** untuk grafik statistik, atau **Data Survey** untuk tabel semua respons.
 
-## Struktur Database (lihat `server/schema.sql`)
+## Struktur Database (lihat)
 
 - `alumni` — data diri alumni (nis, nama, jurusan, tahun_lulus, email, no_hp)
 - `survey` — respons survey, relasi ke `alumni` lewat `alumni_id`
