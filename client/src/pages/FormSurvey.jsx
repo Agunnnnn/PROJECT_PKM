@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import api from "../api/axios";
 
 const initialForm = {
@@ -14,15 +14,72 @@ const initialForm = {
     relevansiJurusan: "Sangat Sesuai",
     lamaTungguKerja: "",
     namaKampus: "",
+    jurusanKampus: "",
     saranUntukSekolah: "",
 };
 
 export default function FormSurvey() {
     const [form, setForm] = useState(initialForm);
-    const [status, setStatus] = useState(null); // 'success' | 'error' | null
+    const [status, setStatus] = useState(null);
+
+    const [jurusanList, setJurusanList] = useState([]);
+    const [tahunList, setTahunList] = useState([]);
+    const [alumniList, setAlumniList] = useState([]);
+
+    // Ambil daftar jurusan sekali di awal
+    useEffect(() => {
+        api.get("/alumni/jurusan-list").then((res) => setJurusanList(res.data));
+    }, []);
+
+    // Setiap jurusan berubah, ambil daftar tahun lulus yang sesuai
+    useEffect(() => {
+        if (!form.jurusan) {
+            setTahunList([]);
+            return;
+        }
+        api.get("/alumni/tahun-by-jurusan", {
+            params: { jurusan: form.jurusan },
+        }).then((res) => setTahunList(res.data));
+    }, [form.jurusan]);
+
+    // Setiap jurusan/tahun berubah, ambil daftar nama alumni yang sesuai
+    useEffect(() => {
+        if (!form.jurusan || !form.tahunLulus) {
+            setAlumniList([]);
+            return;
+        }
+        api.get("/alumni/search", {
+            params: { jurusan: form.jurusan, tahunLulus: form.tahunLulus },
+        }).then((res) => setAlumniList(res.data));
+    }, [form.jurusan, form.tahunLulus]);
 
     const handleChange = (e) => {
-        setForm({ ...form, [e.target.name]: e.target.value });
+        const { name, value } = e.target;
+
+        // Kalau ganti jurusan, reset pilihan tahun & nama yang di bawahnya
+        if (name === "jurusan") {
+            setForm({
+                ...form,
+                jurusan: value,
+                tahunLulus: "",
+                nama: "",
+                nis: "",
+            });
+            return;
+        }
+        // Kalau ganti tahun, reset pilihan nama
+        if (name === "tahunLulus") {
+            setForm({ ...form, tahunLulus: value, nama: "", nis: "" });
+            return;
+        }
+        // Kalau pilih nama, otomatis isi NIS dari data yang cocok
+        if (name === "nama") {
+            const dipilih = alumniList.find((a) => a.nama === value);
+            setForm({ ...form, nama: value, nis: dipilih ? dipilih.nis : "" });
+            return;
+        }
+
+        setForm({ ...form, [name]: value });
     };
 
     const handleSubmit = async (e) => {
@@ -32,6 +89,8 @@ export default function FormSurvey() {
             await api.post("/survey", form);
             setStatus("success");
             setForm(initialForm);
+            setTahunList([]);
+            setAlumniList([]);
         } catch (error) {
             console.error(error);
             setStatus("error");
@@ -48,37 +107,59 @@ export default function FormSurvey() {
                 </p>
 
                 <form onSubmit={handleSubmit}>
-                    <label>NIS</label>
-                    <input
-                        name='nis'
-                        value={form.nis}
-                        onChange={handleChange}
-                        required
-                    />
-
-                    <label>Nama Lengkap</label>
-                    <input
-                        name='nama'
-                        value={form.nama}
-                        onChange={handleChange}
-                        required
-                    />
-
                     <label>Jurusan</label>
-                    <input
+                    <select
                         name='jurusan'
                         value={form.jurusan}
                         onChange={handleChange}
                         required
-                    />
+                    >
+                        <option value=''>-- Pilih Jurusan --</option>
+                        {jurusanList.map((j) => (
+                            <option key={j} value={j}>
+                                {j}
+                            </option>
+                        ))}
+                    </select>
 
                     <label>Tahun Lulus</label>
-                    <input
-                        type='number'
+                    <select
                         name='tahunLulus'
                         value={form.tahunLulus}
                         onChange={handleChange}
                         required
+                        disabled={!form.jurusan}
+                    >
+                        <option value=''>-- Pilih Tahun Lulus --</option>
+                        {tahunList.map((t) => (
+                            <option key={t} value={t}>
+                                {t}
+                            </option>
+                        ))}
+                    </select>
+
+                    <label>Nama</label>
+                    <select
+                        name='nama'
+                        value={form.nama}
+                        onChange={handleChange}
+                        required
+                        disabled={!form.tahunLulus}
+                    >
+                        <option value=''>-- Pilih Nama --</option>
+                        {alumniList.map((a) => (
+                            <option key={a.id} value={a.nama}>
+                                {a.nama}
+                            </option>
+                        ))}
+                    </select>
+
+                    <label>NIS</label>
+                    <input
+                        name='nis'
+                        value={form.nis}
+                        readOnly
+                        placeholder='Otomatis terisi setelah pilih nama'
                     />
 
                     <label>Email</label>
@@ -151,6 +232,13 @@ export default function FormSurvey() {
                             <input
                                 name='namaKampus'
                                 value={form.namaKampus}
+                                onChange={handleChange}
+                            />
+
+                            <label>Jurusan Kuliah</label>
+                            <input
+                                name='jurusanKampus'
+                                value={form.jurusanKampus}
                                 onChange={handleChange}
                             />
                         </>

@@ -27,6 +27,7 @@ export const createSurvey = async (req, res) => {
             relevansiJurusan,
             lamaTungguKerja,
             namaKampus,
+            jurusanKampus,
             saranUntukSekolah,
         } = req.body;
 
@@ -51,6 +52,7 @@ export const createSurvey = async (req, res) => {
             relevansiJurusan,
             lamaTungguKerja,
             namaKampus,
+            jurusanKampus,
             saranUntukSekolah,
         });
 

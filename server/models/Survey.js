@@ -8,12 +8,13 @@ export const createSurveyEntry = async ({
     relevansiJurusan,
     lamaTungguKerja,
     namaKampus,
+    jurusanKampus,
     saranUntukSekolah,
 }) => {
     const [result] = await pool.query(
         `INSERT INTO survey
-      (alumni_id, status_saat_ini, nama_perusahaan, bidang_kerja, relevansi_jurusan, lama_tunggu_kerja, nama_kampus, saran_untuk_sekolah)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        (alumni_id, status_saat_ini, nama_perusahaan, bidang_kerja, relevansi_jurusan, lama_tunggu_kerja, nama_kampus, jurusan_kampus, saran_untuk_sekolah)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
             alumniId,
             statusSaatIni,
@@ -22,6 +23,7 @@ export const createSurveyEntry = async ({
             relevansiJurusan || null,
             lamaTungguKerja || null,
             namaKampus || null,
+            jurusanKampus || null,
             saranUntukSekolah || null,
         ],
     );
