@@ -24,7 +24,6 @@ export const createSurvey = async (req, res) => {
             statusSaatIni,
             namaPerusahaan,
             bidangKerja,
-            relevansiJurusan,
             lamaTungguKerja,
             namaKampus,
             jurusanKampus,
@@ -34,14 +33,25 @@ export const createSurvey = async (req, res) => {
         // Cari atau buat data alumni dulu
         let alumni = await findAlumniByNis(nis);
         if (!alumni) {
-            alumni = await createAlumni({
-                nis,
-                nama,
-                jurusan,
-                tahunLulus,
-                email,
-                noHp,
-            });
+            alumni = await createAlumni({ nis, nama, jurusan, tahunLulus, email, noHp });
+        }
+
+        // Hitung relevansi otomatis pakai ML, HANYA kalau alumni sedang bekerja
+        let relevansiJurusan = null;
+        if (statusSaatIni === "Bekerja" && bidangKerja) {
+            try {
+                const mlResponse = await fetch("http://localhost:5001/predict", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ jurusan, bidangKerja }),
+                });
+                const mlData = await mlResponse.json();
+                relevansiJurusan = mlData.relevansi;
+            } catch (mlError) {
+                console.error("Gagal memanggil ML API:", mlError.message);
+                // Kalau ML API gagal/mati, tetap lanjut simpan survey TANPA relevansi
+                // supaya alumni tidak gagal submit form gara-gara masalah teknis di ML
+            }
         }
 
         const survey = await createSurveyEntry({
@@ -56,7 +66,7 @@ export const createSurvey = async (req, res) => {
             saranUntukSekolah,
         });
 
-        res.status(201).json(survey);
+        res.status(201).json({ ...survey, relevansiJurusan });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

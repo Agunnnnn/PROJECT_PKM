@@ -11,7 +11,6 @@ const initialForm = {
     statusSaatIni: "Bekerja",
     namaPerusahaan: "",
     bidangKerja: "",
-    relevansiJurusan: "Sangat Sesuai",
     lamaTungguKerja: "",
     namaKampus: "",
     jurusanKampus: "",
@@ -204,17 +203,6 @@ export default function FormSurvey() {
                                 value={form.bidangKerja}
                                 onChange={handleChange}
                             />
-
-                            <label>Kesesuaian dengan Jurusan</label>
-                            <select
-                                name='relevansiJurusan'
-                                value={form.relevansiJurusan}
-                                onChange={handleChange}
-                            >
-                                <option>Sangat Sesuai</option>
-                                <option>Cukup Sesuai</option>
-                                <option>Tidak Sesuai</option>
-                            </select>
 
                             <label>Lama Menunggu Kerja</label>
                             <input

@@ -3,6 +3,7 @@ import api from "../../api/axios";
 
 export default function DataSurvey() {
     const [surveys, setSurveys] = useState([]);
+    const [filteredSurveys, setFilteredSurveys] = useState([]);
     const [tahunList, setTahunList] = useState([]);
     const [selectedTahun, setSelectedTahun] = useState("");
     const [error, setError] = useState("");
@@ -10,8 +11,12 @@ export default function DataSurvey() {
     const [isExporting, setIsExporting] = useState(false);
 
     useEffect(() => {
-        api.get("/survey")
-            .then((res) => setSurveys(res.data))
+        api
+            .get("/survey")
+            .then((res) => {
+                setSurveys(res.data);
+                setFilteredSurveys(res.data);
+            })
             .catch(() => setError("Gagal memuat data. Pastikan sudah login."));
 
         api.get("/survey/tahun-list")
@@ -23,6 +28,15 @@ export default function DataSurvey() {
                 /* diamkan saja kalau gagal, dropdown akan kosong */
             });
     }, []);
+
+    // Setiap tahun yang dipilih berubah, filter data yang ditampilkan di tabel
+    useEffect(() => {
+        if (!selectedTahun) {
+            setFilteredSurveys(surveys);
+            return;
+        }
+        setFilteredSurveys(surveys.filter((s) => String(s.tahun_lulus) === String(selectedTahun)));
+    }, [selectedTahun, surveys]);
 
     const handleExportPdf = async () => {
         if (!selectedTahun) return;
@@ -142,25 +156,31 @@ export default function DataSurvey() {
                             <th>Tahun Lulus</th>
                             <th>Status</th>
                             <th>Perusahaan/Kampus</th>
+                            <th>Bidang Kerja</th>
+                            <th>Jurusan Kampus</th>
                             <th>Relevansi</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {surveys.map((s) => (
+                        {filteredSurveys.map((s) => (
                             <tr key={s.id}>
                                 <td>{s.nama}</td>
                                 <td>{s.jurusan}</td>
                                 <td>{s.tahun_lulus}</td>
                                 <td>{s.status_saat_ini}</td>
-                                <td>
-                                    {s.nama_perusahaan || s.nama_kampus || "-"}
-                                </td>
+                                <td>{s.nama_perusahaan || s.nama_kampus || "-"}</td>
+                                <td>{s.bidang_kerja || "-"}</td>
+                                <td>{s.jurusan_kampus || "-"}</td>
                                 <td>{s.relevansi_jurusan || "-"}</td>
                             </tr>
                         ))}
                     </tbody>
                 </table>
-                {surveys.length === 0 && <p>Belum ada data.</p>}
+                {filteredSurveys.length === 0 && (
+                    <p style={{ padding: "12px 0", color: "#6b7280" }}>
+                        Data belum tersedia untuk tahun {selectedTahun || "ini"}.
+                    </p>
+                )}
             </div>
         </div>
     );
