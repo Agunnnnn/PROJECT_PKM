@@ -34,6 +34,13 @@ pip3 install -r requirements.txt --break-system-packages
 python3 app.py    # jalankan di http://localhost:5001
 ```
 
+Untuk Windows
+```bash
+cd ml-api
+python -m pip install -r requirements.txt
+python app.py
+```
+
 > ⚠️ **Tiga terminal harus tetap terbuka bersamaan** (server, client, ml-api) supaya aplikasinya berfungsi penuh, termasuk fitur prediksi relevansi otomatis.
 
 ## Alur Pemakaian
