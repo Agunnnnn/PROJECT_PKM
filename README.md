@@ -82,3 +82,11 @@ python app.py
 - **Dashboard/Data Survey kosong** → isi dulu form survey minimal 1-2 kali dari halaman utama
 - **CORS error di browser** → pastikan backend Node.js sudah jalan duluan di port 5000
 - **"does not provide an export named 'default'"** → biasanya ada file yang isinya salah taruh (misal isi model ketimpa ke file route, atau sebaliknya) — cek ulang isi file yang disebutkan di pesan error
+
+
+## Teknologi yang Digunakan (Tahap Prototype)
+
+| Bagian | Teknologi |
+|---|---|
+| **Frontend** | ReactJS, Vite |
+| **Backend** | NodeJS, ExpressJS |
