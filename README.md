@@ -90,3 +90,5 @@ python app.py
 |---|---|
 | **Frontend** | ReactJS, Vite |
 | **Backend** | NodeJS, ExpressJS |
+| **Database** | MySQL |
+| **Machine Learning** | Python, Flask, Scikit-learn, Pandas |
