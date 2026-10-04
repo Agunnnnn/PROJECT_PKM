@@ -161,11 +161,11 @@ SMK Puspita Bangsa membutuhkan sistem untuk melacak status alumni setelah lulus 
 
 ## 13. Struktur Tim & Pembagian Tanggung Jawab
 
-| Peran                 | Tanggung Jawab                                                            |
-| --------------------- | ------------------------------------------------------------------------- |
-| **Backend Engineer**  | Pengembangan API, autentikasi, integrasi database dan ML API              |
-| **Frontend Engineer** | Pengembangan antarmuka pengguna (form, dashboard, tabel data)             |
-| **ML Engineer**       | Penyiapan data referensi, pelatihan model, evaluasi, dan deployment model |
+| Peran                 | Penanggung Jawab     | Tanggung Jawab                                                            |
+| --------------------- | -------------------- | ------------------------------------------------------------------------- |
+| **Backend Engineer**  | Dicky Baskara        | Pengembangan API, autentikasi, integrasi database dan ML API              |
+| **Frontend Engineer** | Putra Reno Hariyanto | Pengembangan antarmuka pengguna (form, dashboard, tabel data)             |
+| **ML Engineer**       | Palaguna             | Penyiapan data referensi, pelatihan model, evaluasi, dan deployment model |
 
 ## 14. Risiko dan Mitigasi
 
