@@ -1,9 +1,10 @@
 import { useState } from "react";
+import { Link, useLocation } from "react-router-dom";
 import logo from "../assets/Logo.jpeg";
 
 const MENU = [
-  { label: "Beranda", href: "/#beranda" },
-  { label: "Tentang", href: "/#tentang" },
+  { label: "Beranda", href: "/" },
+  { label: "Tentang", href: "/tentang" },
   { label: "Sambutan", href: "/#sambutan" },
   { label: "Panduan", href: "/#panduan" },
   { label: "FAQ", href: "/#faq" },
@@ -36,11 +37,25 @@ const btnSolid =
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
+  const location = useLocation();
+
+  const isItemActive = (href) => {
+    if (href === "/") {
+      return location.pathname === "/" && (!location.hash || location.hash === "#beranda");
+    }
+    if (href === "/tentang") {
+      return location.pathname === "/tentang";
+    }
+    if (href.startsWith("/#")) {
+      return location.pathname === "/" && location.hash === href.replace("/", "");
+    }
+    return location.pathname === href;
+  };
 
   return (
     <header className="sticky top-0 z-20 border-b border-[#e6edf5] bg-white">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-6 px-5 py-4 lg:px-10 lg:py-6">
-        <a href="/" className="flex items-center gap-3.5">
+        <Link to="/" className="flex items-center gap-3.5">
           <img
             src={logo}
             alt="Logo SMK Puspita Bangsa"
@@ -54,29 +69,32 @@ export default function Navbar() {
               Tracer Study
             </strong>
           </div>
-        </a>
+        </Link>
 
         <nav className="hidden gap-9 lg:flex" aria-label="Menu utama">
-          {MENU.map((m, i) => (
-            <a
-              key={m.label}
-              href={m.href}
-              className={`font-['Poppins',sans-serif] text-[17px] font-medium hover:text-[#1767a8] ${
-                i === 0 ? "text-[#1767a8]" : "text-[#3d4a5c]"
-              }`}
-            >
-              {m.label}
-            </a>
-          ))}
+          {MENU.map((m) => {
+            const active = isItemActive(m.href);
+            return (
+              <Link
+                key={m.label}
+                to={m.href}
+                className={`font-['Poppins',sans-serif] text-[17px] font-medium transition-colors hover:text-[#1767a8] ${
+                  active ? "text-[#1767a8] font-semibold" : "text-[#3d4a5c]"
+                }`}
+              >
+                {m.label}
+              </Link>
+            );
+          })}
         </nav>
 
         {/* Login Admin - hanya tampil di desktop */}
-        <a
-          href="/login"
+        <Link
+          to="/login"
           className={`${btnSolid} hidden px-6 py-3.5 text-[17px] lg:inline-flex`}
         >
           Login Admin
-        </a>
+        </Link>
 
         {/* Tombol hamburger - hanya tampil di HP */}
         <button
@@ -94,24 +112,28 @@ export default function Navbar() {
           className="flex flex-col border-t border-[#e6edf5] bg-white px-5 pb-5 pt-2 lg:hidden"
           aria-label="Menu seluler"
         >
-          {MENU.map((m, i) => (
-            <a
-              key={m.label}
-              href={m.href}
-              onClick={() => setOpen(false)}
-              className={`border-b border-[#e6edf5] py-3.5 font-['Poppins',sans-serif] text-[17px] font-medium ${
-                i === 0 ? "text-[#1767a8]" : "text-[#3d4a5c]"
-              }`}
-            >
-              {m.label}
-            </a>
-          ))}
-          <a
-            href="/login"
+          {MENU.map((m) => {
+            const active = isItemActive(m.href);
+            return (
+              <Link
+                key={m.label}
+                to={m.href}
+                onClick={() => setOpen(false)}
+                className={`border-b border-[#e6edf5] py-3.5 font-['Poppins',sans-serif] text-[17px] font-medium transition-colors ${
+                  active ? "text-[#1767a8] font-semibold" : "text-[#3d4a5c]"
+                }`}
+              >
+                {m.label}
+              </Link>
+            );
+          })}
+          <Link
+            to="/login"
+            onClick={() => setOpen(false)}
             className={`${btnSolid} mt-4 flex px-6 py-3.5 text-[17px]`}
           >
             Login Admin
-          </a>
+          </Link>
         </nav>
       )}
     </header>
