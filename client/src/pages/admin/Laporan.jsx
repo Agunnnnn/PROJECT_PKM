@@ -97,7 +97,7 @@ export default function Laporan() {
             id="periode"
             value={tahun}
             onChange={(e) => setTahun(e.target.value)}
-            className="h-11 w-[120px] cursor-pointer appearance-none rounded-xl border border-transparent bg-[#eef2f8] pl-4 pr-10 text-base font-semibold text-[#12263f] focus:border-[#1767a8] focus:outline-none focus:ring-4 focus:ring-[#1767a8]/15 lg:h-[52px] lg:w-[250px] lg:border-[#9fb3cf] lg:bg-white lg:pl-5 lg:text-xl lg:font-normal lg:text-[#5b7794]"
+            className="h-11 w-30 cursor-pointer appearance-none rounded-xl border border-transparent bg-[#eef2f8] pl-4 pr-10 text-base font-semibold text-[#12263f] focus:border-[#1767a8] focus:outline-none focus:ring-4 focus:ring-[#1767a8]/15 lg:h-13 lg:w-62.5 lg:border-[#9fb3cf] lg:bg-white lg:pl-5 lg:text-xl lg:font-normal lg:text-[#5b7794]"
           >
             {TAHUN.map((t) => (
               <option key={t} value={t}>
