@@ -6,7 +6,7 @@ const MENU = [
   { label: "Beranda", href: "/", icon: "home" },
   { label: "Tentang", href: "/tentang", icon: "info" },
   { label: "Sambutan", href: "/#sambutan", icon: "mic" },
-  { label: "Panduan", href: "/#panduan", icon: "book" },
+  { label: "Panduan", href: "/panduan", icon: "book" },
   { label: "FAQ", href: "/#faq", icon: "help" },
 ];
 
@@ -215,7 +215,7 @@ export default function Navbar() {
           role="dialog"
           aria-modal="true"
           aria-label="Menu Tracer Study"
-          className={`absolute right-0 top-0 flex h-full w-[86%] max-w-sm flex-col rounded-l-[32px] bg-[#d6dfeb] px-5 pb-6 pt-6 shadow-2xl transition-transform duration-300 ease-out ${
+          className={`absolute right-0 top-0 flex h-full w-[86%] max-w-sm flex-col rounded-l-4xl bg-[#d6dfeb] px-5 pb-6 pt-6 shadow-2xl transition-transform duration-300 ease-out ${
             open ? "translate-x-0" : "translate-x-full"
           }`}
         >
@@ -241,7 +241,7 @@ export default function Navbar() {
                   key={m.label}
                   to={m.href}
                   onClick={() => setOpen(false)}
-                  className={`flex h-[68px] items-center gap-5 rounded-2xl border px-5 font-['Inter',sans-serif] text-[17px] transition-colors ${
+                  className={`flex h-17 items-center gap-5 rounded-2xl border px-5 font-['Inter',sans-serif] text-[17px] transition-colors ${
                     active
                       ? "border-[#0f172a] bg-[#0f172a] font-medium text-white"
                       : "border-[#dde5f0] bg-[#e9eff7] text-[#334155] hover:bg-white"
