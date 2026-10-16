@@ -67,14 +67,6 @@ export default function TentangTracerStudy() {
                     </div>
                 </div>
             </main>
-
-            {/* Footer */}
-            <footer className="bg-blue-700 text-white">
-                <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-2 px-6 py-5 text-xs sm:flex-row">
-                    <p>© 2026 Tracer Study SMK Puspita Bangsa</p>
-                    <p>Pendataan alumni • Peningkatan mutu pendidikan</p>
-                </div>
-            </footer>
         </div>
     );
 }
