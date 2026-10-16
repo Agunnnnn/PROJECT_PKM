@@ -85,7 +85,7 @@ export default function Beranda() {
               Mulai Survey <ArrowRight />
             </a>
             <a
-              href="#panduan"
+              href="/panduan"
               className={`${btnOutline} p-5 text-lg lg:px-9 lg:py-6 lg:text-xl`}
             >
               Lihat Panduan
