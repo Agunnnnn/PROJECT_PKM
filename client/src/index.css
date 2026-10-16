@@ -1,2 +1,72 @@
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Poppins:wght@500;600;700&display=swap");
 @import "tailwindcss";
+
+/* ===== Floating Label Styles ===== */
+.floating-group {
+  position: relative;
+}
+
+.floating-input {
+  height: 54px;
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid #d5deea;
+  background-color: #ffffff;
+  padding: 0 16px;
+  font-family: "Inter", sans-serif;
+  font-size: 16px;
+  color: #0f1923;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.floating-input:focus {
+  border-color: #1767a8;
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(23, 103, 168, 0.15);
+}
+
+/* Hilangkan background kuning/biru autofill bawaan Chrome */
+.floating-input:-webkit-autofill,
+.floating-input:-webkit-autofill:hover,
+.floating-input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px #ffffff inset !important;
+  -webkit-text-fill-color: #0f1923 !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+.floating-label {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: "Poppins", sans-serif;
+  font-size: 15px;
+  font-weight: 400;
+  color: #6b7f99;
+  pointer-events: none;
+  background-color: transparent;
+  padding: 0 4px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-origin: left center;
+  z-index: 10;
+}
+
+/* Ketika fokus, ketika ada teks (:not(:placeholder-shown)), ketika autofill, atau kelas is-floating */
+.floating-input:focus ~ .floating-label,
+.floating-input:not(:placeholder-shown) ~ .floating-label,
+.floating-input:-webkit-autofill ~ .floating-label,
+.floating-label.is-floating {
+  top: 0;
+  transform: translateY(-50%);
+  font-size: 12px;
+  font-weight: 600;
+  color: #1767a8;
+  background-color: #ffffff;
+}
+
+/* Ketika blur tapi ada teks / autofill, warnanya abu-abu tenang */
+.floating-input:not(:focus):not(:placeholder-shown) ~ .floating-label,
+.floating-input:not(:focus):-webkit-autofill ~ .floating-label,
+.floating-label.is-floating:not(.is-focused) {
+  color: #5b7794;
+}
