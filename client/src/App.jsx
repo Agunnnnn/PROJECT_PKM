@@ -5,6 +5,8 @@ import FormSurvey from "./pages/FormSurvey";
 import Login from "./pages/Login";
 import Dashboard from "./pages/admin/Dashboard";
 import DataSurvey from "./pages/admin/DataSurvey";
+import Tentang from "./pages/tentang";
+import Panduan from "./pages/Panduan";
 
 // Route sederhana: kalau belum ada token, lempar ke halaman login
 function PrivateRoute({ children }) {
@@ -20,6 +22,8 @@ export default function App() {
         <Route path="/" element={<Beranda />} />
         <Route path="/survey" element={<FormSurvey />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/tentang" element={<Tentang />} />
+        <Route path="/panduan" element={<Panduan />} />
         <Route
           path="/admin/dashboard"
           element={
