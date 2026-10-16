@@ -17,6 +17,9 @@ import FormSurvey from "./pages/FormSurvey";
 import Login from "./pages/Login";
 import Dashboard from "./pages/admin/Dashboard";
 import DataSurvey from "./pages/admin/DataSurvey";
+import DataAlumni from "./pages/admin/DataAlumni";
+import Laporan from "./pages/admin/Laporan";
+import ProfilAdmin from "./pages/admin/ProfilAdmin";
 
 // Kalau belum ada token, lempar ke halaman login
 function PrivateRoute({ children }) {
@@ -69,7 +72,11 @@ export default function App() {
         {/* Admin */}
         <Route element={<AdminLayout />}>
           <Route path="/admin/dashboard" element={<Dashboard />} />
-          <Route path="/admin/data" element={<DataSurvey />} />
+          <Route path="/admin/data" element={<DataAlumni />} />
+          <Route path="/admin/data-alumni" element={<DataAlumni />} />
+          <Route path="/admin/data-survey" element={<DataSurvey />} />
+          <Route path="/admin/laporan" element={<Laporan />} />
+          <Route path="/admin/profil" element={<ProfilAdmin />} />
         </Route>
       </Routes>
     </BrowserRouter>
