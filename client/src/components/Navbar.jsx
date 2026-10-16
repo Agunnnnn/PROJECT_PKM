@@ -5,9 +5,9 @@ import logo from "../assets/Logo.jpeg";
 const MENU = [
   { label: "Beranda", href: "/", icon: "home" },
   { label: "Tentang", href: "/tentang", icon: "info" },
-  { label: "Sambutan", href: "/#sambutan", icon: "mic" },
+  { label: "Sambutan", href: "/sambutan", icon: "mic" },
   { label: "Panduan", href: "/panduan", icon: "book" },
-  { label: "FAQ", href: "/#faq", icon: "help" },
+  { label: "FAQ", href: "/faq", icon: "help" },
 ];
 
 /* ---------- Ikon ---------- */
