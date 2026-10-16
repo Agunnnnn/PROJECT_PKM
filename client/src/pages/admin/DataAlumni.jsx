@@ -99,14 +99,14 @@ export default function DataAlumni({
 
       {/* Toolbar: di desktop berupa kartu, di mobile hanya kontrol */}
       <section className="mb-5 lg:mb-6 lg:flex lg:items-center lg:justify-between lg:gap-6 lg:rounded-2xl lg:border lg:border-slate-200 lg:bg-white lg:px-8 lg:py-6">
-        <div className="hidden lg:block">
+        <div className="hidden lg:block lg:shrink-0">
           <h2 className="text-2xl font-bold text-[#12294d]">Data Alumni</h2>
           <p className="mt-1 text-slate-500">Kelola informasi dan status alumni.</p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3 lg:flex-nowrap">
+        <div className="flex flex-wrap items-center gap-3 lg:min-w-0 lg:flex-1 lg:justify-end">
           {/* Cari */}
-          <label className="relative order-1 min-w-0 flex-1 lg:order-2 lg:w-72 lg:flex-none">
+          <label className="relative order-1 min-w-0 flex-1 lg:order-2 lg:min-w-[10rem] lg:max-w-xs">
             <span className="sr-only">Cari nama alumni</span>
             <svg
               viewBox="0 0 24 24"
@@ -139,12 +139,12 @@ export default function DataAlumni({
           </button>
 
           {/* Filter jurusan */}
-          <div className="relative order-3 lg:order-1">
+          <div className="relative order-3 shrink-0 lg:order-1">
             <select
               value={jurusan}
               onChange={(e) => setJurusan(e.target.value)}
               aria-label="Filter jurusan"
-              className="h-11 w-full appearance-none rounded-xl border border-slate-200 bg-white pl-4 pr-10 text-base text-slate-700 focus:border-[#1769aa] focus:outline-none focus:ring-2 focus:ring-[#1769aa]/20 lg:h-14 lg:w-56 lg:border-[#1769aa]/40"
+              className="h-11 w-full appearance-none rounded-xl border border-slate-200 bg-white pl-4 pr-10 text-base text-slate-700 focus:border-[#1769aa] focus:outline-none focus:ring-2 focus:ring-[#1769aa]/20 lg:h-14 lg:w-48 lg:border-[#1769aa]/40"
             >
               <option value="Semua">Semua Jurusan</option>
               {DAFTAR_JURUSAN.map((j) => (
