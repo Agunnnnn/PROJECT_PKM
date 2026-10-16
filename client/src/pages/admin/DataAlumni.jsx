@@ -2,12 +2,66 @@ import React, { useMemo, useState } from "react";
 
 /* ===================== DATA DUMMY ===================== */
 const DATA_DUMMY = [
-  { id: 1, nama: "Rina Aulia", nisn: "0067234512", jurusan: "AKL", tahun: 2024, status: "Kuliah", aktivitas: "S1 Akuntasi", kesesuaian: "Sangat Sesuai" },
-  { id: 2, nama: "Dimas Pratama", nisn: "0067234513", jurusan: "RPL", tahun: 2024, status: "Bekerja", aktivitas: "Software Dev", kesesuaian: "Sangat Sesuai" },
-  { id: 3, nama: "Siti Nurhaliza", nisn: "0067234514", jurusan: "AKL", tahun: 2025, status: "Bekerja", aktivitas: "Staff Accounting", kesesuaian: "Sangat Sesuai" },
-  { id: 4, nama: "Andi Saputra", nisn: "0067234515", jurusan: "OTKP", tahun: 2025, status: "Wirausaha", aktivitas: "Adminstrasi", kesesuaian: "Cukup Sesuai" },
-  { id: 5, nama: "Budi Santoso", nisn: "0067234516", jurusan: "BDP", tahun: 2025, status: "Belum bekerja", aktivitas: "Belum Bekerja", kesesuaian: "Tidak Sesuai" },
-  { id: 6, nama: "Nadia Putri", nisn: "0067234517", jurusan: "RPL", tahun: 2023, status: "Kuliah", aktivitas: "S1 Sistem Informasi", kesesuaian: "Sangat Sesuai" },
+  {
+    id: 1,
+    nama: "Rina Aulia",
+    nisn: "0067234512",
+    jurusan: "AKL",
+    tahun: 2024,
+    status: "Kuliah",
+    aktivitas: "S1 Akuntasi",
+    kesesuaian: "Sangat Sesuai",
+  },
+  {
+    id: 2,
+    nama: "Dimas Pratama",
+    nisn: "0067234513",
+    jurusan: "RPL",
+    tahun: 2024,
+    status: "Bekerja",
+    aktivitas: "Software Dev",
+    kesesuaian: "Sangat Sesuai",
+  },
+  {
+    id: 3,
+    nama: "Siti Nurhaliza",
+    nisn: "0067234514",
+    jurusan: "AKL",
+    tahun: 2025,
+    status: "Bekerja",
+    aktivitas: "Staff Accounting",
+    kesesuaian: "Sangat Sesuai",
+  },
+  {
+    id: 4,
+    nama: "Andi Saputra",
+    nisn: "0067234515",
+    jurusan: "OTKP",
+    tahun: 2025,
+    status: "Wirausaha",
+    aktivitas: "Adminstrasi",
+    kesesuaian: "Cukup Sesuai",
+  },
+  {
+    id: 5,
+    nama: "Budi Santoso",
+    nisn: "0067234516",
+    jurusan: "BDP",
+    tahun: 2025,
+    status: "Belum bekerja",
+    aktivitas: "Belum Bekerja",
+    kesesuaian: "Tidak Sesuai",
+  },
+  {
+    id: 6,
+    nama: "Nadia Putri",
+    nisn: "0067234517",
+    jurusan: "RPL",
+    tahun: 2023,
+    status: "Kuliah",
+    aktivitas: "S1 Sistem Informasi",
+    kesesuaian: "Sangat Sesuai",
+  },
 ];
 
 const DAFTAR_JURUSAN = ["AKL", "RPL", "OTKP", "BDP"];
@@ -68,9 +122,9 @@ export default function DataAlumni({
       daftar.filter(
         (a) =>
           a.nama.toLowerCase().includes(cari.trim().toLowerCase()) &&
-          (jurusan === "Semua" || a.jurusan === jurusan)
+          (jurusan === "Semua" || a.jurusan === jurusan),
       ),
-    [daftar, cari, jurusan]
+    [daftar, cari, jurusan],
   );
 
   const hapus = (alumni) => {
@@ -101,12 +155,14 @@ export default function DataAlumni({
       <section className="mb-5 lg:mb-6 lg:flex lg:items-center lg:justify-between lg:gap-6 lg:rounded-2xl lg:border lg:border-slate-200 lg:bg-white lg:px-8 lg:py-6">
         <div className="hidden lg:block lg:shrink-0">
           <h2 className="text-2xl font-bold text-[#12294d]">Data Alumni</h2>
-          <p className="mt-1 text-slate-500">Kelola informasi dan status alumni.</p>
+          <p className="mt-1 text-slate-500">
+            Kelola informasi dan status alumni.
+          </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3 lg:min-w-0 lg:flex-1 lg:justify-end">
           {/* Cari */}
-          <label className="relative order-1 min-w-0 flex-1 lg:order-2 lg:min-w-[10rem] lg:max-w-xs">
+          <label className="relative order-1 min-w-0 flex-1 lg:order-2 lg:min-w-40 lg:max-w-xs">
             <span className="sr-only">Cari nama alumni</span>
             <svg
               viewBox="0 0 24 24"
@@ -170,7 +226,7 @@ export default function DataAlumni({
       {/* ============ DESKTOP: TABEL ============ */}
       <section className="hidden overflow-hidden rounded-2xl border border-slate-200 bg-white lg:block">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[900px] text-left">
+          <table className="w-full min-w-225 text-left">
             <thead>
               <tr className="bg-slate-50 text-sm font-bold text-slate-500">
                 <th className="py-5 pl-10 pr-3">No.</th>
@@ -197,13 +253,23 @@ export default function DataAlumni({
                   </td>
                   <td className="px-3 py-6">{a.aktivitas}</td>
                   <td className="px-3 py-6">
-                    <Badge warna={WARNA_KESESUAIAN[a.kesesuaian]}>{a.kesesuaian}</Badge>
+                    <Badge warna={WARNA_KESESUAIAN[a.kesesuaian]}>
+                      {a.kesesuaian}
+                    </Badge>
                   </td>
                   <td className="whitespace-nowrap py-6 pl-3 pr-10">
-                    <button type="button" onClick={() => onEdit?.(a)} className="mr-6 text-[#1769aa] hover:underline">
+                    <button
+                      type="button"
+                      onClick={() => onEdit?.(a)}
+                      className="mr-6 text-[#1769aa] hover:underline"
+                    >
                       Edit
                     </button>
-                    <button type="button" onClick={() => hapus(a)} className="text-red-600 hover:underline">
+                    <button
+                      type="button"
+                      onClick={() => hapus(a)}
+                      className="text-red-600 hover:underline"
+                    >
                       Hapus
                     </button>
                   </td>
@@ -224,7 +290,11 @@ export default function DataAlumni({
           <p>
             Menampilkan {tampil.length} dari {totalData} data alumni (contoh)
           </p>
-          <Pagination halaman={halaman} total={totalHalaman} onChange={gantiHalaman} />
+          <Pagination
+            halaman={halaman}
+            total={totalHalaman}
+            onChange={gantiHalaman}
+          />
         </div>
       </section>
 
@@ -232,7 +302,10 @@ export default function DataAlumni({
       <section className="lg:hidden">
         <ul className="space-y-4">
           {tampil.map((a) => (
-            <li key={a.id} className="rounded-2xl border border-slate-200 bg-white p-5">
+            <li
+              key={a.id}
+              className="rounded-2xl border border-slate-200 bg-white p-5"
+            >
               <h3 className="text-lg font-bold text-[#0f1a24]">{a.nama}</h3>
               <p className="mt-0.5 text-sm text-slate-500">
                 NISN: {a.nisn} • {a.jurusan} ({a.tahun})
@@ -241,10 +314,18 @@ export default function DataAlumni({
                 <div className="flex items-center justify-between">
                   <Badge warna={WARNA_STATUS[a.status]}>{a.status}</Badge>
                   <div className="flex gap-4 text-sm font-bold">
-                    <button type="button" onClick={() => onEdit?.(a)} className="text-blue-600">
+                    <button
+                      type="button"
+                      onClick={() => onEdit?.(a)}
+                      className="text-blue-600"
+                    >
                       Edit
                     </button>
-                    <button type="button" onClick={() => hapus(a)} className="text-red-600">
+                    <button
+                      type="button"
+                      onClick={() => hapus(a)}
+                      className="text-red-600"
+                    >
                       Hapus
                     </button>
                   </div>
@@ -263,7 +344,11 @@ export default function DataAlumni({
           <p>
             Menampilkan {tampil.length} dari {totalData} data alumni
           </p>
-          <Pagination halaman={halaman} total={totalHalaman} onChange={gantiHalaman} />
+          <Pagination
+            halaman={halaman}
+            total={totalHalaman}
+            onChange={gantiHalaman}
+          />
         </div>
       </section>
     </main>
@@ -306,8 +391,9 @@ function Pagination({ halaman, total, onChange }) {
           type="button"
           onClick={() => onChange(n)}
           aria-current={n === halaman ? "page" : undefined}
-          className={`min-w-8 rounded-lg px-2.5 py-1 font-semibold ${n === halaman ? "bg-[#1769aa] text-white" : "hover:text-slate-800"
-            }`}
+          className={`min-w-8 rounded-lg px-2.5 py-1 font-semibold ${
+            n === halaman ? "bg-[#1769aa] text-white" : "hover:text-slate-800"
+          }`}
         >
           {n}
         </button>
