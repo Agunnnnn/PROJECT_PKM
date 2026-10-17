@@ -53,6 +53,10 @@ def load_models():
 models = load_models()
 
 
+def model_tersedia(tipe):
+    return tipe in models and models[tipe] and models[tipe].get('vectorizer')
+
+
 def prediksi_relevansi(model_dict, nama_jurusan, teks):
     vectorizer = model_dict['vectorizer']
     vektor_jurusan = model_dict['vektor_jurusan']
@@ -123,7 +127,7 @@ def predict():
         tipe = "bekerja"
 
     # Jika model untuk tipe ini belum tersedia, balas 200 { relevansi: null, tersedia: false }
-    if tipe not in models or not models[tipe] or not models[tipe].get('vectorizer'):
+    if not model_tersedia(tipe):
         return jsonify({"relevansi": None, "skor": 0.0, "tersedia": False}), 200
 
     if not jurusan or not teks:
@@ -131,6 +135,33 @@ def predict():
 
     label, skor = prediksi_relevansi(models[tipe], jurusan, teks)
     return jsonify({"relevansi": label, "skor": skor, "tersedia": True})
+
+
+@app.route("/predict-batch", methods=["POST", "OPTIONS"])
+def predict_batch():
+    """
+    Body: {"items": [{"jurusan": "RPL", "tipe": "bekerja", "teks": "web developer"}, ...]}
+    Balasan: {"hasil": [{"relevansi": ..., "skor": ..., "tersedia": ...}, ...]} (urutan sama)
+    """
+    if request.method == "OPTIONS":
+        return "", 204
+
+    data = request.get_json(silent=True) or {}
+    items = data.get("items", [])
+    hasil = []
+
+    for item in items:
+        jurusan = str(item.get("jurusan", "")).strip()
+        tipe = str(item.get("tipe", "bekerja")).strip().lower() or "bekerja"
+        teks = str(item.get("teks", "")).strip()
+
+        if not model_tersedia(tipe) or not jurusan or not teks:
+            hasil.append({"relevansi": None, "skor": 0.0, "tersedia": False})
+        else:
+            label, skor = prediksi_relevansi(models[tipe], jurusan, teks)
+            hasil.append({"relevansi": label, "skor": skor, "tersedia": True})
+
+    return jsonify({"hasil": hasil})
 
 
 if __name__ == "__main__":
