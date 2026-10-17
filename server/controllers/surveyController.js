@@ -10,7 +10,90 @@ import {
     getRelevansiCount,
     countAlumni,
     countSurvey,
+    updateSurveyRelevansi,
+    getSurveysTanpaRelevansi,
 } from "../models/Survey.js";
+
+/**
+ * Helper terpusat untuk memanggil Flask ML API
+ * Menghubungkan tipe 'bekerja' & 'kuliah', serta menangani fail-safe
+ */
+export const hitungRelevansiModel = async ({
+    jurusan,
+    statusSaatIni,
+    bidangKerja,
+    jurusanKampus,
+}) => {
+    let tipe = null;
+    let teks = "";
+
+    if (statusSaatIni === "Bekerja") {
+        tipe = "bekerja";
+        teks = typeof bidangKerja === "string" ? bidangKerja.trim().slice(0, 150) : "";
+    } else if (statusSaatIni === "Kuliah") {
+        tipe = "kuliah";
+        teks = typeof jurusanKampus === "string" ? jurusanKampus.trim().slice(0, 150) : "";
+    } else {
+        // Status Wirausaha, Belum Bekerja, dll. -> tidak memanggil ML
+        return { relevansi: null, skor: 0, tersedia: false };
+    }
+
+    const jurusanClean = typeof jurusan === "string" ? jurusan.trim().slice(0, 150) : "";
+    if (!jurusanClean || !teks) {
+        return { relevansi: null, skor: 0, tersedia: false };
+    }
+
+    const mlBaseUrl = process.env.ML_API_URL || "http://localhost:5001";
+    const endpoint = `${mlBaseUrl.replace(/\/+$/, "")}/predict`;
+
+    try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+        const response = await fetch(endpoint, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                jurusan: jurusanClean,
+                tipe,
+                teks,
+            }),
+            signal: controller.signal,
+        });
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+            return { relevansi: null, skor: 0, tersedia: false };
+        }
+
+        const data = await response.json();
+        return {
+            relevansi: data.relevansi || null,
+            skor: typeof data.skor === "number" ? data.skor : 0,
+            tersedia: data.tersedia !== false && data.relevansi !== null,
+        };
+    } catch (err) {
+        console.error("Gagal memanggil ML API:", err.message);
+        return { relevansi: null, skor: 0, tersedia: false };
+    }
+};
+
+// Endpoint publik: cek prediksi sebelum submit survei (langkah 2 -> langkah 3)
+export const prediksiRelevansi = async (req, res) => {
+    try {
+        const { jurusan, statusSaatIni, bidangKerja, jurusanKampus } = req.body || {};
+        const hasil = await hitungRelevansiModel({
+            jurusan,
+            statusSaatIni,
+            bidangKerja,
+            jurusanKampus,
+        });
+        res.json(hasil);
+    } catch (error) {
+        res.status(500).json({ relevansi: null, skor: 0, tersedia: false, message: error.message });
+    }
+};
 
 export const createSurvey = async (req, res) => {
     try {
@@ -36,22 +119,22 @@ export const createSurvey = async (req, res) => {
             alumni = await createAlumni({ nis, nama, jurusan, tahunLulus, email, noHp });
         }
 
-        // Hitung relevansi otomatis pakai ML, HANYA kalau alumni sedang bekerja
+        // Hitung ulang relevansi di sisi server (Bekerja & Kuliah), jangan percaya input client
         let relevansiJurusan = null;
-        if (statusSaatIni === "Bekerja" && bidangKerja) {
-            try {
-                const mlResponse = await fetch("http://localhost:5001/predict", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ jurusan, bidangKerja }),
-                });
-                const mlData = await mlResponse.json();
-                relevansiJurusan = mlData.relevansi;
-            } catch (mlError) {
-                console.error("Gagal memanggil ML API:", mlError.message);
-                // Kalau ML API gagal/mati, tetap lanjut simpan survey TANPA relevansi
-                // supaya alumni tidak gagal submit form gara-gara masalah teknis di ML
+        try {
+            const hasilMl = await hitungRelevansiModel({
+                jurusan,
+                statusSaatIni,
+                bidangKerja,
+                jurusanKampus,
+            });
+            const validLabels = ["Sangat Sesuai", "Cukup Sesuai", "Tidak Sesuai"];
+            if (validLabels.includes(hasilMl.relevansi)) {
+                relevansiJurusan = hasilMl.relevansi;
             }
+        } catch (mlError) {
+            console.error("Gagal memanggil ML API di createSurvey:", mlError.message);
+            // Tetap lanjut simpan survei dengan relevansi NULL (fail-safe)
         }
 
         const survey = await createSurveyEntry({
@@ -67,6 +150,42 @@ export const createSurvey = async (req, res) => {
         });
 
         res.status(201).json({ ...survey, relevansiJurusan });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// Endpoint admin (JWT): hitung ulang relevansi untuk data lama yang masih NULL
+export const hitungUlangRelevansi = async (req, res) => {
+    try {
+        const surveys = await getSurveysTanpaRelevansi();
+        const diproses = surveys.length;
+        let berhasil = 0;
+        let gagal = 0;
+
+        const validLabels = ["Sangat Sesuai", "Cukup Sesuai", "Tidak Sesuai"];
+
+        for (const s of surveys) {
+            try {
+                const hasil = await hitungRelevansiModel({
+                    jurusan: s.jurusan,
+                    statusSaatIni: s.status_saat_ini,
+                    bidangKerja: s.bidang_kerja,
+                    jurusanKampus: s.jurusan_kampus,
+                });
+
+                if (validLabels.includes(hasil.relevansi)) {
+                    await updateSurveyRelevansi(s.id, hasil.relevansi);
+                    berhasil++;
+                } else {
+                    gagal++;
+                }
+            } catch (err) {
+                gagal++;
+            }
+        }
+
+        res.json({ diproses, berhasil, gagal });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
