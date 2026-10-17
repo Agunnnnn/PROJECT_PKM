@@ -84,8 +84,30 @@ def prediksi_relevansi(model_dict, nama_jurusan, teks):
     return label, skor
 
 
-@app.route("/predict", methods=["POST"])
+@app.after_request
+def add_cors_headers(response):
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+    return response
+
+
+@app.route("/health", methods=["GET", "OPTIONS"])
+def health():
+    if request.method == "OPTIONS":
+        return "", 204
+    return jsonify({
+        "status": "ok",
+        "models": list(models.keys()),
+        "jurusan": {tipe: m.get('nama_jurusan_list', []) for tipe, m in models.items()}
+    })
+
+
+@app.route("/predict", methods=["POST", "OPTIONS"])
 def predict():
+    if request.method == "OPTIONS":
+        return "", 204
+
     data = request.get_json(silent=True) or {}
     jurusan = str(data.get("jurusan", "")).strip()
     tipe = str(data.get("tipe", "")).strip().lower()
