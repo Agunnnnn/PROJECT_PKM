@@ -13,7 +13,7 @@ import Tentang from "./pages/Tentang";
 import Sambutan from "./pages/Sambutan";
 import Panduan from "./pages/Panduan";
 import Faq from "./pages/Faq";
-import FormSurvey from "./pages/FormSurvey";
+import FormSurvey from "./pages/survey/FormSurvey";
 import Login from "./pages/Login";
 import Dashboard from "./pages/admin/Dashboard";
 import DataSurvey from "./pages/admin/DataSurvey";

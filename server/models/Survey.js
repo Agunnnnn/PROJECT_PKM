@@ -85,3 +85,22 @@ export const countSurvey = async () => {
     const [rows] = await pool.query("SELECT COUNT(*) AS total FROM survey");
     return rows[0].total;
 };
+
+export const updateSurveyRelevansi = async (id, relevansi) => {
+    const [result] = await pool.query(
+        "UPDATE survey SET relevansi_jurusan = ? WHERE id = ?",
+        [relevansi, id],
+    );
+    return result.affectedRows > 0;
+};
+
+export const getSurveysTanpaRelevansi = async () => {
+    const [rows] = await pool.query(
+        `SELECT s.id, s.status_saat_ini, s.bidang_kerja, s.jurusan_kampus, a.jurusan
+         FROM survey s
+         JOIN alumni a ON s.alumni_id = a.id
+         WHERE s.relevansi_jurusan IS NULL
+           AND s.status_saat_ini IN ('Bekerja', 'Kuliah')`,
+    );
+    return rows;
+};
