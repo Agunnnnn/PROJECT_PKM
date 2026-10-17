@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../api/axios";
+import logo from "../assets/Logo.jpeg"; // <-- simpan file di src/assets/Logo.jpeg
 
 /* ---------- Ikon ---------- */
 const Svg = ({ children, size = 24, ...props }) => (
@@ -13,12 +14,6 @@ const Svg = ({ children, size = 24, ...props }) => (
   >
     {children}
   </svg>
-);
-
-const UserCircle = () => (
-  <Svg size={30} fill="currentColor">
-    <path d="M12 2a10 10 0 100 20 10 10 0 000-20zm0 4a3.500 3.500 0 110 7 3.500 3.500 0 010-7zm0 14.200a8 8 0 01-6.200-3c.1-2 4.100-3.100 6.200-3.100s6.100 1.100 6.200 3.100a8 8 0 01-6.200 3z" />
-  </Svg>
 );
 
 const Eye = () => (
@@ -106,9 +101,11 @@ export default function Login() {
         <div className="rounded-[28px] bg-white p-6 shadow-[0_10px_30px_rgba(23,103,168,0.10)] lg:rounded-4xl lg:p-8">
           {/* Header kartu */}
           <div className="text-center">
-            <div className="mx-auto mb-5 grid h-14 w-14 place-items-center rounded-full bg-[#e9f3fd] text-[#1767a8]">
-              <UserCircle />
-            </div>
+            <img
+              src={logo}
+              alt="Logo SMK Puspita Bangsa"
+              className="mx-auto mb-5 h-20 w-20 object-contain"
+            />
             <h1 className="font-['Poppins',sans-serif] text-[28px] font-bold leading-tight text-[#0f1923]">
               Login Admin
             </h1>
@@ -150,9 +147,8 @@ export default function Login() {
               />
               <label
                 htmlFor="username"
-                className={`floating-label ${
-                  isUserFloating ? "is-floating" : ""
-                } ${userFocused ? "is-focused" : ""}`}
+                className={`floating-label ${isUserFloating ? "is-floating" : ""
+                  } ${userFocused ? "is-focused" : ""}`}
               >
                 Username atau email
               </label>
@@ -174,9 +170,8 @@ export default function Login() {
               />
               <label
                 htmlFor="password"
-                className={`floating-label ${
-                  isPassFloating ? "is-floating" : ""
-                } ${passFocused ? "is-focused" : ""}`}
+                className={`floating-label ${isPassFloating ? "is-floating" : ""
+                  } ${passFocused ? "is-focused" : ""}`}
               >
                 Password
               </label>

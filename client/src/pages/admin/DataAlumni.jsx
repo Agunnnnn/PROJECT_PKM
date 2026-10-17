@@ -169,7 +169,7 @@ export default function DataAlumni({ onTambah, onExport, onEdit, onHapus }) {
           <button
             type="button"
             onClick={() => setPesanHitung("")}
-            className="text-blue-700 hover:text-blue-900 font-bold ml-4"
+            className="ml-4 font-bold text-blue-700 hover:text-blue-900"
           >
             ✕
           </button>
@@ -186,17 +186,28 @@ export default function DataAlumni({ onTambah, onExport, onEdit, onHapus }) {
       )}
 
       {/* Toolbar */}
-      <section className="mb-5 lg:mb-6 lg:flex lg:items-center lg:justify-between lg:gap-6 lg:rounded-2xl lg:border lg:border-slate-200 lg:bg-white lg:px-8 lg:py-6">
-        <div className="hidden lg:block lg:shrink-0">
-          <h2 className="text-2xl font-bold text-[#12294d]">Data Alumni</h2>
-          <p className="mt-1 text-slate-500">
-            Kelola informasi dan status alumni.
-          </p>
+      <section className="mb-5 lg:mb-6 lg:flex lg:flex-col lg:gap-5 lg:rounded-2xl lg:border lg:border-slate-200 lg:bg-white lg:px-8 lg:py-6">
+        {/* Baris atas (desktop): judul + tombol Tambah */}
+        <div className="hidden lg:flex lg:items-center lg:justify-between lg:gap-6">
+          <div>
+            <h2 className="text-2xl font-bold text-[#12294d]">Data Alumni</h2>
+            <p className="mt-1 text-slate-500">
+              Kelola informasi dan status alumni.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onTambah}
+            className="h-12 shrink-0 rounded-xl bg-[#1769aa] px-6 text-base font-bold text-white transition hover:bg-[#125687]"
+          >
+            + Tambah Data
+          </button>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3 lg:min-w-0 lg:flex-1 lg:justify-end">
+        {/* Baris bawah (desktop): filter, cari, aksi */}
+        <div className="flex flex-wrap items-center gap-3 lg:flex-nowrap">
           {/* Cari */}
-          <label className="relative order-1 min-w-0 flex-1 lg:order-2 lg:min-w-40 lg:max-w-xs">
+          <label className="relative order-1 min-w-0 flex-1 lg:order-2">
             <span className="sr-only">Cari nama alumni</span>
             <svg
               viewBox="0 0 24 24"
@@ -218,17 +229,26 @@ export default function DataAlumni({ onTambah, onExport, onEdit, onHapus }) {
                 setHalaman(1);
               }}
               placeholder="Cari nama alumni..."
-              className="h-12 w-full rounded-xl border border-slate-200 bg-white px-5 text-base text-slate-700 placeholder:text-slate-400 focus:border-[#1769aa] focus:outline-none focus:ring-2 focus:ring-[#1769aa]/20 lg:h-14 lg:pl-11"
+              className="h-12 w-full rounded-xl border border-slate-200 bg-white px-5 text-base text-slate-700 placeholder:text-slate-400 focus:border-[#1769aa] focus:outline-none focus:ring-2 focus:ring-[#1769aa]/20 lg:h-12 lg:pl-11"
             />
           </label>
 
-          {/* Tombol Hitung Ulang Relevansi */}
+          {/* Tambah (mobile saja) */}
+          <button
+            type="button"
+            onClick={onTambah}
+            className="order-2 h-12 shrink-0 rounded-xl bg-[#1769aa] px-6 text-base font-bold text-white transition hover:bg-[#125687] lg:hidden"
+          >
+            + Tambah Data
+          </button>
+
+          {/* Hitung Ulang Relevansi */}
           <button
             type="button"
             onClick={handleHitungUlang}
             disabled={sedangHitung || loading}
             title="Hitung ulang prediksi ML untuk baris data yang belum memiliki kesesuaian"
-            className="order-3 h-11 shrink-0 rounded-xl border border-[#1769aa] bg-blue-50 px-4 text-sm font-semibold text-[#1769aa] transition hover:bg-blue-100 disabled:opacity-50 lg:order-3 lg:h-14 lg:px-5"
+            className="order-3 h-11 shrink-0 whitespace-nowrap rounded-xl border border-[#1769aa] bg-blue-50 px-4 text-sm font-semibold text-[#1769aa] transition hover:bg-blue-100 disabled:opacity-50 lg:order-3 lg:h-12 lg:px-5"
           >
             {sedangHitung ? "Menghitung..." : "⚡ Hitung Ulang Relevansi"}
           </button>
@@ -242,7 +262,7 @@ export default function DataAlumni({ onTambah, onExport, onEdit, onHapus }) {
                 setHalaman(1);
               }}
               aria-label="Filter jurusan"
-              className="h-11 w-full appearance-none rounded-xl border border-slate-200 bg-white pl-4 pr-10 text-base text-slate-700 focus:border-[#1769aa] focus:outline-none focus:ring-2 focus:ring-[#1769aa]/20 lg:h-14 lg:w-56 lg:border-[#1769aa]/40"
+              className="h-11 w-full appearance-none rounded-xl border border-slate-200 bg-white pl-4 pr-10 text-base text-slate-700 focus:border-[#1769aa] focus:outline-none focus:ring-2 focus:ring-[#1769aa]/20 lg:h-12 lg:w-56 lg:border-[#1769aa]/40"
             >
               <option value="Semua">Semua Jurusan</option>
               {daftarJurusan.map((j) => (
@@ -258,18 +278,9 @@ export default function DataAlumni({ onTambah, onExport, onEdit, onHapus }) {
           <button
             type="button"
             onClick={onExport}
-            className="order-5 h-11 shrink-0 rounded-xl border border-slate-200 bg-white px-5 text-base text-slate-700 transition hover:bg-slate-50 lg:order-4 lg:h-14 lg:px-7"
+            className="order-5 h-11 shrink-0 whitespace-nowrap rounded-xl border border-slate-200 bg-white px-5 text-base text-slate-700 transition hover:bg-slate-50 lg:order-4 lg:h-12 lg:px-6"
           >
             Export Data
-          </button>
-
-          {/* Tambah */}
-          <button
-            type="button"
-            onClick={onTambah}
-            className="order-2 h-12 shrink-0 rounded-xl bg-[#1769aa] px-6 text-base font-bold text-white transition hover:bg-[#125687] lg:order-5 lg:h-14"
-          >
-            + Tambah Data
           </button>
         </div>
       </section>
@@ -500,9 +511,8 @@ function Pagination({ halaman, total, onChange }) {
           type="button"
           onClick={() => onChange(n)}
           aria-current={n === halaman ? "page" : undefined}
-          className={`min-w-8 rounded-lg px-2.5 py-1 font-semibold ${
-            n === halaman ? "bg-[#1769aa] text-white" : "hover:text-slate-800"
-          }`}
+          className={`min-w-8 rounded-lg px-2.5 py-1 font-semibold ${n === halaman ? "bg-[#1769aa] text-white" : "hover:text-slate-800"
+            }`}
         >
           {n}
         </button>
