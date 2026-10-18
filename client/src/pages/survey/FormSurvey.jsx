@@ -68,19 +68,37 @@ export default function FormSurvey() {
     setAnalisisKey("");
   };
 
-  // Ganti status = kosongkan rincian lama supaya tidak ikut terkirim & reset prediksi
+  // Ganti status = kosongkan rincian lama & otomatis pindah ke langkah berikutnya
   const pilihStatus = (key) => {
-    setForm((prev) => ({
-      ...prev,
-      statusSaatIni: key,
-      namaPerusahaan: "",
-      bidangKerja: "",
-      lamaTungguKerja: "",
-      namaKampus: "",
-      jurusanKampus: "",
-    }));
+    const isSameStatus = form.statusSaatIni === key;
+    const updatedForm = isSameStatus
+      ? form
+      : {
+          ...form,
+          statusSaatIni: key,
+          namaPerusahaan: "",
+          bidangKerja: "",
+          lamaTungguKerja: "",
+          namaKampus: "",
+          jurusanKampus: "",
+        };
+
+    setForm(updatedForm);
     setHasil(null);
     setAnalisisKey("");
+
+    const adaRincianBaru = !!RINCIAN[key];
+
+    // Jeda 200ms agar user melihat efek visual kartu status terpilih sebelum berpindah
+    setTimeout(() => {
+      if (adaRincianBaru) {
+        setRincian(true);
+      } else {
+        setStep(3);
+        jalankanPrediksi(updatedForm);
+      }
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }, 200);
   };
 
   const valid =
@@ -100,6 +118,7 @@ export default function FormSurvey() {
     try {
       await api.post("/survey", form);
       setStep(4);
+      window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err) {
       console.error(err);
       setError("Gagal mengirim data. Coba lagi beberapa saat.");
@@ -109,6 +128,7 @@ export default function FormSurvey() {
   };
 
   const lanjut = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
     if (step === 1) return setStep(2);
     if (step === 2 && !rincian) {
       if (adaRincian) {
@@ -128,6 +148,7 @@ export default function FormSurvey() {
   };
 
   const kembali = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
     if (step === 3) {
       setStep(2);
       return setRincian(adaRincian);
