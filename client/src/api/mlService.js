@@ -125,7 +125,8 @@ export async function predictSingleRelevance({
       const data = await res.json();
       if (data.relevansi) {
         const isRelevan =
-          data.relevansi === "Sangat Sesuai" || data.relevansi === "Cukup Sesuai";
+          data.relevansi === "Sangat Sesuai" ||
+          data.relevansi === "Cukup Sesuai";
         return {
           relevansi: data.relevansi,
           skor: data.skor || 0,
@@ -150,30 +151,114 @@ export async function predictSingleRelevance({
 }
 
 /**
- * Prediksi relevansi untuk daftar alumni
+ * Gabungkan data alumni dengan hasil ML
+ */
+function gabungkanHasil(item, hasilMl) {
+  return {
+    ...item,
+    mlRelevansi: hasilMl.relevansi,
+    mlSkor: hasilMl.skor,
+    mlLabel: hasilMl.label,
+    mlKategori: hasilMl.kategori,
+    mlTersedia: hasilMl.tersedia,
+    relevan: hasilMl.kategori === "relevan",
+  };
+}
+
+/**
+ * Prediksi relevansi untuk daftar alumni.
+ * Semua data yang layak diprediksi dikirim dalam 1 request ke /predict-batch.
+ * Kalau batch gagal, fallback ke cara lama (1 request per alumni).
  */
 export async function batchPredictRelevance(alumniList) {
-  const promises = alumniList.map(async (item) => {
+  const prepared = alumniList.map((item) => {
     const bidang = item.bidangKerja || item.tempat || "";
     const kampus = item.jurusanKampus || item.tempat || "";
-
-    const hasilMl = await predictSingleRelevance({
-      jurusan: item.jurusan,
-      statusSaatIni: item.status,
-      bidangKerja: bidang,
-      jurusanKampus: kampus,
-    });
+    const isBekerja = item.status === "Bekerja";
+    const isKuliah = item.status === "Kuliah";
+    const teks = isBekerja ? bidang : kampus;
 
     return {
-      ...item,
-      mlRelevansi: hasilMl.relevansi,
-      mlSkor: hasilMl.skor,
-      mlLabel: hasilMl.label,
-      mlKategori: hasilMl.kategori,
-      mlTersedia: hasilMl.tersedia,
-      relevan: hasilMl.kategori === "relevan",
+      item,
+      params: {
+        jurusan: item.jurusan,
+        statusSaatIni: item.status,
+        bidangKerja: bidang,
+        jurusanKampus: kampus,
+      },
+      tipe: isBekerja ? "bekerja" : "kuliah",
+      teks,
+      eligible: (isBekerja || isKuliah) && !!teks && !!item.jurusan,
+      batchIndex: -1,
     };
   });
 
-  return Promise.all(promises);
+  // Susun payload batch hanya untuk data yang layak
+  const batchItems = [];
+  prepared.forEach((p) => {
+    if (p.eligible) {
+      p.batchIndex = batchItems.length;
+      batchItems.push({
+        jurusan: p.params.jurusan,
+        tipe: p.tipe,
+        teks: p.teks,
+      });
+    }
+  });
+
+  // Kirim 1 request untuk semuanya
+  let batchResults = null;
+  if (batchItems.length > 0) {
+    try {
+      const res = await fetch(`${ML_DIRECT_URL}/predict-batch`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items: batchItems }),
+        signal: AbortSignal.timeout(15000),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (
+          Array.isArray(data.hasil) &&
+          data.hasil.length === batchItems.length
+        ) {
+          batchResults = data.hasil;
+        }
+      }
+    } catch {
+      // Batch gagal, pakai fallback per item
+    }
+  }
+
+  return Promise.all(
+    prepared.map(async (p) => {
+      // Batch berhasil dan data ini ikut diprediksi
+      if (p.eligible && batchResults) {
+        const r = batchResults[p.batchIndex];
+        if (r && r.relevansi) {
+          const isRelevan =
+            r.relevansi === "Sangat Sesuai" || r.relevansi === "Cukup Sesuai";
+          return gabungkanHasil(p.item, {
+            relevansi: r.relevansi,
+            skor: r.skor || 0,
+            tersedia: true,
+            label: r.relevansi,
+            kategori: isRelevan ? "relevan" : "tidak-relevan",
+          });
+        }
+        return gabungkanHasil(p.item, {
+          relevansi: null,
+          skor: 0,
+          tersedia: false,
+          label: "Tidak Diketahui",
+          kategori: "unknown",
+        });
+      }
+
+      // Tidak layak (Wirausaha, data kosong, dll) atau batch gagal:
+      // pakai fungsi lama (yang tidak layak langsung return tanpa request)
+      const hasilMl = await predictSingleRelevance(p.params);
+      return gabungkanHasil(p.item, hasilMl);
+    }),
+  );
 }

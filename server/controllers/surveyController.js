@@ -12,6 +12,7 @@ import {
     countSurvey,
     updateSurveyRelevansi,
     getSurveysTanpaRelevansi,
+    getLaporanByTahun,
 } from "../models/Survey.js";
 
 /**
@@ -380,6 +381,16 @@ export const getStats = async (req, res) => {
         const totalSurvey = await countSurvey();
 
         res.json({ totalAlumni, totalSurvey, statusCount, relevansiCount });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+export const getLaporan = async (req, res) => {
+    try {
+        const { tahun } = req.params;
+        const laporan = await getLaporanByTahun(tahun);
+        res.json(laporan);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

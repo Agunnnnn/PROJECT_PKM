@@ -1,86 +1,10 @@
 import { useEffect, useState, useMemo } from "react";
+import api from "../../api/axios";
 import {
   checkMlHealth,
   batchPredictRelevance,
   predictSingleRelevance,
 } from "../../api/mlService";
-
-// Data awal sampel alumni (sebelum dihubungkan ke database oleh tim backend)
-const INITIAL_ALUMNI = [
-  {
-    id: 1,
-    nama: "Rina Aulia",
-    baru: true,
-    jurusan: "AKL",
-    status: "Kuliah",
-    tempat: "Universitas Indonesia - Akuntansi",
-    jurusanKampus: "Akuntansi",
-    bidangKerja: "",
-  },
-  {
-    id: 2,
-    nama: "Rina Aprilia",
-    jurusan: "RPL",
-    status: "Bekerja",
-    tempat: "PT Teknologi Nusantara",
-    bidangKerja: "Frontend Web Developer React",
-    jurusanKampus: "",
-  },
-  {
-    id: 3,
-    nama: "Dimas Pratama",
-    jurusan: "RPL",
-    status: "Kuliah",
-    tempat: "Univ. Pamulang, Sistem Informasi",
-    jurusanKampus: "Sistem Informasi",
-    bidangKerja: "",
-  },
-  {
-    id: 4,
-    nama: "Siti Nurhaliza",
-    jurusan: "AKL",
-    status: "Bekerja",
-    tempat: "KJKS Barokah Mandiri",
-    bidangKerja: "Staff Akunting dan Pembukuan",
-    jurusanKampus: "",
-  },
-  {
-    id: 5,
-    nama: "Andi Saputra",
-    jurusan: "OTKP",
-    status: "Wirausaha",
-    tempat: "Toko Kelontong Sendiri",
-    bidangKerja: "Pemilik Toko Retail Kelontong",
-    jurusanKampus: "",
-  },
-  {
-    id: 6,
-    nama: "Budi Santoso",
-    jurusan: "BDP",
-    status: "Bekerja",
-    tempat: "PT Mitra Pemasaran Digital",
-    bidangKerja: "Digital Marketing & Sales Social Media",
-    jurusanKampus: "",
-  },
-  {
-    id: 7,
-    nama: "Dewi Lestari",
-    jurusan: "Perhotelan",
-    status: "Bekerja",
-    tempat: "Grand Royal Hotel",
-    bidangKerja: "Front Office & Customer Service Hotel",
-    jurusanKampus: "",
-  },
-  {
-    id: 8,
-    nama: "Fajar Nugraha",
-    jurusan: "RPL",
-    status: "Bekerja",
-    tempat: "CV Sinar Mandiri",
-    bidangKerja: "Kasir Minimarket dan Stock Opname",
-    jurusanKampus: "",
-  },
-];
 
 /* ---------- Komponen & Token Warna ---------- */
 const GREEN = "#21a65b";
@@ -199,7 +123,7 @@ const MlBadge = ({ label, skor, isEvaluating }) => {
           <span className="w-2 h-2 rounded-full bg-[#e68a00]" />
           Tidak Sesuai
         </span>
-        {skor !== undefined && (
+        {skor !== undefined && skor > 0 && (
           <span className="text-[11px] text-[#8a5300] pl-1 font-mono">
             Skor: {skor.toFixed(3)}
           </span>
@@ -217,7 +141,10 @@ const MlBadge = ({ label, skor, isEvaluating }) => {
 
 /* ---------- Komponen Utama Dashboard ---------- */
 export default function Dashboard() {
-  const [alumniList, setAlumniList] = useState(INITIAL_ALUMNI);
+  const [alumniList, setAlumniList] = useState([]);
+  const [totalAlumniDb, setTotalAlumniDb] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [mlStatus, setMlStatus] = useState({
     status: "checking", // 'checking' | 'online' | 'offline'
     source: null,
@@ -233,14 +160,99 @@ export default function Dashboard() {
   const [simLoading, setSimLoading] = useState(false);
   const [simResult, setSimResult] = useState(null);
 
-  // Fungsi untuk memanggil ML API dan memprediksi seluruh data
-  const jalankanPrediksiMl = async (listData = alumniList) => {
+  // Format record dari tabel survey & alumni MySQL
+  const formatSurveyList = (surveyData) => {
+    return (surveyData || []).map((item) => {
+      let tempat = "-";
+      if (item.status_saat_ini === "Bekerja") {
+        tempat =
+          [item.nama_perusahaan, item.bidang_kerja].filter(Boolean).join(" - ") ||
+          "Bekerja";
+      } else if (item.status_saat_ini === "Kuliah") {
+        tempat =
+          [item.nama_kampus, item.jurusan_kampus].filter(Boolean).join(" - ") ||
+          "Kuliah";
+      } else if (item.status_saat_ini === "Wirausaha") {
+        tempat = item.nama_perusahaan || item.bidang_kerja || "Wirausaha";
+      } else if (item.status_saat_ini === "Belum Bekerja") {
+        tempat = "Belum Bekerja";
+      }
+
+      const isRelevan =
+        item.relevansi_jurusan === "Sangat Sesuai" ||
+        item.relevansi_jurusan === "Cukup Sesuai";
+
+      return {
+        id: item.id,
+        alumniId: item.alumni_id,
+        nama: item.nama || "-",
+        nisn: item.nis || "-",
+        jurusan: item.jurusan || "-",
+        status: item.status_saat_ini || "-",
+        tempat,
+        bidangKerja: item.bidang_kerja || "",
+        jurusanKampus: item.jurusan_kampus || "",
+        mlLabel: item.relevansi_jurusan || "Belum Dihitung",
+        relevan: isRelevan,
+        relevansi: item.relevansi_jurusan,
+        tahunLulus: item.tahun_lulus,
+      };
+    });
+  };
+
+  // Muat data awal dari MySQL
+  const muatData = async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      const [resSurvey, resStats] = await Promise.all([
+        api.get("/survey"),
+        api.get("/survey/stats").catch(() => ({ data: { totalAlumni: 0 } })),
+      ]);
+
+      if (resStats.data?.totalAlumni) {
+        setTotalAlumniDb(resStats.data.totalAlumni);
+      }
+
+      const formatted = formatSurveyList(resSurvey.data || []);
+      setAlumniList(formatted);
+
+      // Cek koneksi ML API
+      const health = await checkMlHealth();
+      setMlStatus(health);
+    } catch (err) {
+      console.error("Gagal memuat data dashboard dari MySQL:", err);
+      setError("Gagal memuat data dari database MySQL. Pastikan Anda sudah login.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    muatData();
+  }, []);
+
+  // Fungsi untuk memanggil ML API dan memprediksi/hitung ulang data
+  const jalankanPrediksiMl = async () => {
     setIsEvaluating(true);
     try {
       const health = await checkMlHealth();
       setMlStatus(health);
 
-      const hasilPrediksi = await batchPredictRelevance(listData);
+      // 1. Panggil endpoint backend untuk memperbarui relevansi yang masih NULL di database
+      try {
+        await api.post("/survey/hitung-ulang-relevansi");
+      } catch (e) {
+        console.warn("Backend hitung ulang:", e);
+      }
+
+      // 2. Ambil data terbaru dari database
+      const res = await api.get("/survey");
+      const formatted = formatSurveyList(res.data || []);
+
+      // 3. Batch predict dengan ML API untuk live score
+      const hasilPrediksi = await batchPredictRelevance(formatted);
       setAlumniList(hasilPrediksi);
     } catch (err) {
       console.error("Gagal menjalankan batch ML prediksi:", err);
@@ -249,62 +261,82 @@ export default function Dashboard() {
     }
   };
 
-  // Jalankan evaluasi ML saat pertama kali dashboard dibuka
-  useEffect(() => {
-    jalankanPrediksiMl(INITIAL_ALUMNI);
-  }, []);
-
-  // Perhitungan statistik dinamis berbasis hasil prediksi Machine Learning
+  // Perhitungan statistik dinamis berbasis data MySQL dan Machine Learning
   const stats = useMemo(() => {
-    const totalAlumni = alumniList.length;
+    const totalResponden = alumniList.length;
+    const totalAlumni = totalAlumniDb || totalResponden;
+
     const sudahBekerjaKuliah = alumniList.filter(
       (a) => a.status === "Bekerja" || a.status === "Kuliah",
     ).length;
 
-    // Hitung relevansi berdasarkan hasil klasifikasi ML
-    // Relevan = "Sangat Sesuai" atau "Cukup Sesuai"
+    // Filter yang dievaluasi relevansinya (Bekerja & Kuliah)
     const dinilaiMl = alumniList.filter(
       (a) => a.status === "Bekerja" || a.status === "Kuliah",
     );
     const relevanCount = dinilaiMl.filter(
-      (a) => a.mlLabel === "Sangat Sesuai" || a.mlLabel === "Cukup Sesuai",
+      (a) =>
+        a.mlLabel === "Sangat Sesuai" ||
+        a.mlLabel === "Cukup Sesuai" ||
+        a.relevan === true,
     ).length;
     const tidakRelevanCount = dinilaiMl.filter(
       (a) => a.mlLabel === "Tidak Sesuai",
     ).length;
 
-    const totalJawabanDinilai = relevanCount + tidakRelevanCount || 1;
-    const persenRelevan = Math.round(
-      (relevanCount / totalJawabanDinilai) * 100,
-    );
-    const persenTidak = 100 - persenRelevan;
-    const persenBekerjaKuliah = Math.round(
-      (sudahBekerjaKuliah / (totalAlumni || 1)) * 100,
-    );
+    const totalJawabanDinilai = relevanCount + tidakRelevanCount;
+    const persenRelevan =
+      totalJawabanDinilai > 0
+        ? Math.round((relevanCount / totalJawabanDinilai) * 100)
+        : 0;
+    const persenTidak =
+      totalJawabanDinilai > 0
+        ? Math.round((tidakRelevanCount / totalJawabanDinilai) * 100)
+        : 0;
+    const persenBekerjaKuliah =
+      totalResponden > 0
+        ? Math.round((sudahBekerjaKuliah / totalResponden) * 100)
+        : 0;
 
     // Rata-rata skor kemiripan ML (cosine similarity)
-    const skorValid = dinilaiMl.map((a) => a.mlSkor || 0).filter((s) => s > 0);
+    const skorValid = dinilaiMl
+      .map((a) => a.mlSkor || 0)
+      .filter((s) => s > 0);
     const avgScore =
       skorValid.length > 0
         ? (skorValid.reduce((a, b) => a + b, 0) / skorValid.length).toFixed(3)
         : "0.000";
 
-    // Hitung persentase kecocokan ML per jurusan secara dinamis
-    const daftarJurusan = ["AKL", "BDP", "OTKP", "Perhotelan", "RPL"];
+    // Hitung persentase kecocokan ML per jurusan SMK
+    const daftarJurusan = [
+      { key: "RPL", aliases: ["RPL", "Rekayasa Perangkat Lunak"] },
+      { key: "AKL", aliases: ["AKL", "Akuntansi"] },
+      { key: "OTKP", aliases: ["OTKP", "Otomatisasi Tata Kelola Perkantoran"] },
+      { key: "BDP", aliases: ["BDP", "Bisnis Daring dan Pemasaran"] },
+      { key: "Perhotelan", aliases: ["Perhotelan"] },
+    ];
+
     const perJurusan = daftarJurusan.map((j) => {
-      const siswaJurusan = dinilaiMl.filter((a) => a.jurusan === j);
+      const siswaJurusan = dinilaiMl.filter((a) =>
+        j.aliases.includes(a.jurusan),
+      );
       if (siswaJurusan.length === 0) {
-        return { jurusan: j, persen: 0, total: 0 };
+        return { jurusan: j.key, persen: 0, total: 0 };
       }
       const cocok = siswaJurusan.filter(
-        (a) => a.mlLabel === "Sangat Sesuai" || a.mlLabel === "Cukup Sesuai",
+        (a) =>
+          a.mlLabel === "Sangat Sesuai" ||
+          a.mlLabel === "Cukup Sesuai" ||
+          a.relevan === true,
       ).length;
       const persen = Math.round((cocok / siswaJurusan.length) * 100);
-      return { jurusan: j, persen, total: siswaJurusan.length };
+      return { jurusan: j.key, persen, total: siswaJurusan.length };
     });
 
     return {
       totalAlumni,
+      totalResponden,
+      sudahBekerjaKuliah,
       relevanCount,
       tidakRelevanCount,
       persenRelevan,
@@ -313,7 +345,7 @@ export default function Dashboard() {
       avgScore,
       perJurusan,
     };
-  }, [alumniList]);
+  }, [alumniList, totalAlumniDb]);
 
   // Handler uji prediksi simulasi ML secara langsung
   const handleTestSimulation = async (e) => {
@@ -342,7 +374,7 @@ export default function Dashboard() {
     }
   };
 
-  // Handler menambahkan hasil simulasi ke daftar untuk melihat perubahan real-time
+  // Handler menambahkan hasil simulasi ke daftar sementara
   const handleAddSimulationToDashboard = () => {
     if (!simResult || !simResult.tersedia) return;
     const newEntry = {
@@ -354,11 +386,8 @@ export default function Dashboard() {
       tempat: simTeks,
       bidangKerja: simStatus === "Bekerja" ? simTeks : "",
       jurusanKampus: simStatus === "Kuliah" ? simTeks : "",
-      mlRelevansi: simResult.relevansi,
-      mlSkor: simResult.skor,
       mlLabel: simResult.label,
-      mlKategori: simResult.kategori,
-      mlTersedia: simResult.tersedia,
+      mlSkor: simResult.skor,
       relevan: simResult.kategori === "relevan",
     };
     setAlumniList([newEntry, ...alumniList]);
@@ -378,7 +407,7 @@ export default function Dashboard() {
           </h1>
           <p className="mt-1 text-[15px] text-[#4a6180] lg:text-[17px]">
             Analisis kesesuaian kompetensi lulusan berbasis Model Machine
-            Learning (Cosine Similarity).
+            Learning (Cosine Similarity) & Data MySQL.
           </p>
         </div>
 
@@ -417,7 +446,7 @@ export default function Dashboard() {
             onClick={() => jalankanPrediksiMl()}
             disabled={isEvaluating}
             className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-[#12263f] hover:bg-[#1e3a5f] text-white text-sm font-semibold transition-all shadow-sm disabled:opacity-50 cursor-pointer"
-            title="Kirim ulang sampel data ke API Machine Learning"
+            title="Hitung ulang evaluasi Machine Learning untuk data di database"
           >
             <svg
               className={`w-4 h-4 ${isEvaluating ? "animate-spin" : ""}`}
@@ -437,6 +466,12 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {error && (
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          {error}
+        </div>
+      )}
+
       {/* Info Notice Koneksi Database */}
       <div className="rounded-2xl border border-sky-200 bg-sky-50/80 p-4 text-sm text-sky-800 flex items-start gap-3">
         <svg
@@ -453,11 +488,7 @@ export default function Dashboard() {
           />
         </svg>
         <div>
-          <span className="font-bold">Status Integrasi:</span> Dashboard ini
-          sudah aktif terhubung ke
-          <strong> API Machine Learning</strong>. Hasil klasifikasi relevansi
-          dan persentase dihitung langsung oleh model NLP. Integrasi tabel
-          database akan disambungkan oleh rekan backend Anda.
+          <span className="font-bold">Status Integrasi:</span> Dashboard ini sudah terhubung langsung ke database <strong>MySQL</strong> (Tabel Alumni & Survey) dan model <strong>Machine Learning NLP</strong>. Seluruh metrik di bawah mencerminkan data aktual.
         </div>
       </div>
 
@@ -466,7 +497,7 @@ export default function Dashboard() {
         <StatCard
           value={stats.totalAlumni}
           label="Total Alumni"
-          subtext="Sampel responden tracer study"
+          subtext={`${stats.totalResponden} alumni telah mengisi survei`}
         />
         <StatCard
           value={`${stats.persenRelevan}%`}
@@ -548,7 +579,7 @@ export default function Dashboard() {
         </Card>
 
         {/* Info Detail Model Machine Learning */}
-        <Card className="p-5 lg:p-7 flex flex-col justify-between bg-linear-to-br from-white to-[#f8fbfe]">
+        <Card className="p-5 lg:p-7 flex flex-col justify-between bg-gradient-to-br from-white to-[#f8fbfe]">
           <div>
             <div className="flex items-center gap-2 text-indigo-700 font-semibold text-sm mb-2">
               <svg
@@ -748,7 +779,7 @@ export default function Dashboard() {
               onClick={handleAddSimulationToDashboard}
               className="px-4 py-2 rounded-xl border border-[#cbd5e1] hover:bg-[#f1f5f9] text-[#1e293b] text-xs font-semibold transition-colors cursor-pointer"
             >
-              ➕ Tambah ke Sampel Dashboard
+              ➕ Tambah ke Sampel Sementara
             </button>
           </div>
         )}
@@ -762,12 +793,12 @@ export default function Dashboard() {
               Jawaban Terbaru & Klasifikasi Relevansi ML
             </h2>
             <p className="text-xs text-[#5b7794] mt-0.5">
-              Setiap baris dianalisis secara real-time oleh model machine
-              learning berdasarkan kompetensi jurusan
+              Setiap baris bersumber dari database MySQL dan dianalisis oleh
+              model machine learning
             </p>
           </div>
           <div className="text-xs text-[#718ba5]">
-            Menampilkan {alumniList.length} data responden
+            Menampilkan {alumniList.length} data responden survei
           </div>
         </div>
 
@@ -783,49 +814,63 @@ export default function Dashboard() {
               </tr>
             </thead>
             <tbody>
-              {alumniList.map((r) => (
-                <tr
-                  key={r.id}
-                  className="border-b border-[#d9e6f5] text-[#12263f] last:border-b-0 hover:bg-[#f8fbfe] transition-colors"
-                >
-                  <td className="whitespace-nowrap py-4 pr-6 font-medium">
-                    {r.nama}
-                    {r.baru && (
-                      <span className="ml-2.5 rounded-full bg-[#f5a623] px-2.5 py-0.5 align-middle text-[11px] font-bold text-[#6b3f00]">
-                        BARU
-                      </span>
-                    )}
-                  </td>
-                  <td className="py-4 pr-6 font-medium text-[#334e68]">
-                    <span className="px-2.5 py-1 rounded-lg bg-[#f0f4f8] text-xs font-bold text-[#1e3a5f]">
-                      {r.jurusan}
-                    </span>
-                  </td>
-                  <td className="py-4 pr-6">
-                    <span
-                      className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-                        r.status === "Bekerja"
-                          ? "bg-emerald-50 text-emerald-700"
-                          : r.status === "Kuliah"
-                            ? "bg-sky-50 text-sky-700"
-                            : "bg-amber-50 text-amber-700"
-                      }`}
-                    >
-                      {r.status}
-                    </span>
-                  </td>
-                  <td className="py-4 pr-6 text-[15px] text-[#243b53]">
-                    {r.bidangKerja || r.jurusanKampus || r.tempat}
-                  </td>
-                  <td className="py-4">
-                    <MlBadge
-                      label={r.mlLabel}
-                      skor={r.mlSkor}
-                      isEvaluating={isEvaluating}
-                    />
+              {loading ? (
+                <tr>
+                  <td colSpan={5} className="py-8 text-center text-[#5b7794] animate-pulse">
+                    Memuat data responden dari database MySQL...
                   </td>
                 </tr>
-              ))}
+              ) : alumniList.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="py-8 text-center text-[#5b7794]">
+                    Belum ada alumni yang mengisi kuesioner tracer study di database MySQL.
+                  </td>
+                </tr>
+              ) : (
+                alumniList.map((r) => (
+                  <tr
+                    key={r.id}
+                    className="border-b border-[#d9e6f5] text-[#12263f] last:border-b-0 hover:bg-[#f8fbfe] transition-colors"
+                  >
+                    <td className="whitespace-nowrap py-4 pr-6 font-medium">
+                      {r.nama}
+                      {r.baru && (
+                        <span className="ml-2.5 rounded-full bg-[#f5a623] px-2.5 py-0.5 align-middle text-[11px] font-bold text-[#6b3f00]">
+                          SIMULASI
+                        </span>
+                      )}
+                    </td>
+                    <td className="py-4 pr-6 font-medium text-[#334e68]">
+                      <span className="px-2.5 py-1 rounded-lg bg-[#f0f4f8] text-xs font-bold text-[#1e3a5f]">
+                        {r.jurusan}
+                      </span>
+                    </td>
+                    <td className="py-4 pr-6">
+                      <span
+                        className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                          r.status === "Bekerja"
+                            ? "bg-emerald-50 text-emerald-700"
+                            : r.status === "Kuliah"
+                              ? "bg-sky-50 text-sky-700"
+                              : "bg-amber-50 text-amber-700"
+                        }`}
+                      >
+                        {r.status}
+                      </span>
+                    </td>
+                    <td className="py-4 pr-6 text-[15px] text-[#243b53]">
+                      {r.bidangKerja || r.jurusanKampus || r.tempat}
+                    </td>
+                    <td className="py-4">
+                      <MlBadge
+                        label={r.mlLabel}
+                        skor={r.mlSkor}
+                        isEvaluating={isEvaluating}
+                      />
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
