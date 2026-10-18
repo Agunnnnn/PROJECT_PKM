@@ -28,16 +28,32 @@ export const updateAdminPassword = async (id, hashedPassword) => {
 
 export const getAdminProfile = async (id) => {
   const [rows] = await pool.query(
-    "SELECT id, username, nama, email, telepon, role FROM admin WHERE id = ?",
+    "SELECT id, username, nama, email, telepon, role, foto FROM admin WHERE id = ?",
     [id]
   );
   return rows[0];
 };
 
-export const updateAdminProfile = async (id, { username, nama, email, telepon, role }) => {
+export const updateAdminProfile = async (id, { username, nama, email, telepon, role, foto }) => {
+  if (foto !== undefined) {
+    const [result] = await pool.query(
+      "UPDATE admin SET username = ?, nama = ?, email = ?, telepon = ?, role = ?, foto = ? WHERE id = ?",
+      [username, nama, email, telepon || "", role || "Administrator", foto, id]
+    );
+    return result.affectedRows > 0;
+  }
+
   const [result] = await pool.query(
     "UPDATE admin SET username = ?, nama = ?, email = ?, telepon = ?, role = ? WHERE id = ?",
     [username, nama, email, telepon || "", role || "Administrator", id]
+  );
+  return result.affectedRows > 0;
+};
+
+export const updateAdminFoto = async (id, foto) => {
+  const [result] = await pool.query(
+    "UPDATE admin SET foto = ? WHERE id = ?",
+    [foto, id]
   );
   return result.affectedRows > 0;
 };
