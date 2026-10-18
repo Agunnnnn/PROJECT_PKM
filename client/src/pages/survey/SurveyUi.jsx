@@ -1,4 +1,5 @@
 // Komponen & gaya yang dipakai bersama oleh semua langkah survey
+import { useState, useRef, useEffect } from "react";
 
 export const Svg = ({ children, size = 24, fill = "none", sw = 2 }) => (
   <svg
@@ -77,36 +78,172 @@ export const Select = ({
   label,
   value,
   onChange,
-  disabled,
-  placeholder,
-  options,
-}) => (
-  <div>
-    <label htmlFor={id} className={labelCls}>
-      {label}
-    </label>
-    <div className="relative">
-      <select
-        id={id}
-        name={id}
-        value={value}
-        onChange={onChange}
-        disabled={disabled}
-        className={`${fieldCls} appearance-none pr-12`}
-      >
-        <option value="">{placeholder}</option>
-        {options.map((o) => (
-          <option key={o.value} value={o.value}>
-            {o.label}
-          </option>
-        ))}
-      </select>
-      <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[#5b7794]">
-        <IChevron />
-      </span>
+  disabled = false,
+  placeholder = "-- Pilih --",
+  options = [],
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const dropdownRef = useRef(null);
+
+  // Ambil label opsi yang sedang terpilih
+  const selectedOption = options.find((o) => String(o.value) === String(value));
+
+  // Tutup dropdown jika klik di luar
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setIsOpen(false);
+      }
+    };
+    if (isOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      document.addEventListener("touchstart", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("touchstart", handleClickOutside);
+    };
+  }, [isOpen]);
+
+  // Reset pencarian saat dropdown ditutup
+  useEffect(() => {
+    if (!isOpen) setSearch("");
+  }, [isOpen]);
+
+  // Tutup jika komponen tiba-tiba di-disable
+  useEffect(() => {
+    if (disabled && isOpen) {
+      setIsOpen(false);
+    }
+  }, [disabled, isOpen]);
+
+  const handleSelect = (val) => {
+    onChange({ target: { name: id, value: val } });
+    setIsOpen(false);
+  };
+
+  const filteredOptions = options.filter((o) =>
+    String(o.label || o.value)
+      .toLowerCase()
+      .includes(search.toLowerCase())
+  );
+
+  return (
+    <div className={`relative ${isOpen ? "z-30" : "z-10"}`} ref={dropdownRef}>
+      {label && (
+        <label htmlFor={id} className={labelCls}>
+          {label}
+        </label>
+      )}
+      <div className="relative">
+        <button
+          type="button"
+          id={id}
+          disabled={disabled}
+          onClick={() => !disabled && setIsOpen((prev) => !prev)}
+          className={`${fieldCls} flex items-center justify-between text-left appearance-none pr-10 transition-all ${
+            disabled
+              ? "cursor-not-allowed bg-[#f1f5f9] text-[#8a9bb0]"
+              : "cursor-pointer bg-white"
+          } ${!value ? "text-[#6b7f99]" : "text-[#12263f]"}`}
+          aria-haspopup="listbox"
+          aria-expanded={isOpen}
+        >
+          <span className="truncate">
+            {selectedOption ? selectedOption.label : placeholder}
+          </span>
+          <span
+            className={`pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[#5b7794] transition-transform duration-200 ${
+              isOpen ? "rotate-180" : ""
+            }`}
+          >
+            <IChevron />
+          </span>
+        </button>
+
+        {isOpen && !disabled && (
+          <div className="absolute left-0 top-full z-50 mt-1.5 w-full rounded-xl border border-[#cbd5e1] bg-white shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-100">
+            {/* Input pencarian jika opsi lebih dari 5 */}
+            {options.length > 5 && (
+              <div className="border-b border-[#e2e8f0] p-2 bg-[#f8fafc]">
+                <div className="relative">
+                  <input
+                    type="text"
+                    autoFocus
+                    placeholder="Ketik untuk mencari..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="w-full rounded-lg border border-[#cbd5e1] bg-white py-2 pl-3 pr-8 text-sm text-[#12263f] placeholder:text-[#94a3b8] focus:border-[#1767a8] focus:outline-none focus:ring-2 focus:ring-[#1767a8]/20"
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                  {search && (
+                    <button
+                      type="button"
+                      onClick={() => setSearch("")}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-[#94a3b8] hover:text-[#12263f]"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
+            <ul
+              role="listbox"
+              className="max-h-56 overflow-y-auto overscroll-contain py-1 text-base divide-y divide-[#f8fafc]"
+            >
+              {placeholder && (
+                <li
+                  role="option"
+                  aria-selected={!value}
+                  onClick={() => handleSelect("")}
+                  className={`cursor-pointer px-4 py-2.5 text-sm transition-colors ${
+                    !value
+                      ? "bg-[#1767a8]/10 font-semibold text-[#1767a8]"
+                      : "text-[#64748b] hover:bg-[#f1f5f9]"
+                  }`}
+                >
+                  {placeholder}
+                </li>
+              )}
+              {filteredOptions.length > 0 ? (
+                filteredOptions.map((o, idx) => {
+                  const isSelected = String(o.value) === String(value);
+                  return (
+                    <li
+                      key={`${o.value}-${idx}`}
+                      role="option"
+                      aria-selected={isSelected}
+                      onClick={() => handleSelect(o.value)}
+                      className={`flex cursor-pointer items-center justify-between px-4 py-2.5 text-sm transition-colors ${
+                        isSelected
+                          ? "bg-[#1767a8]/10 font-semibold text-[#1767a8]"
+                          : "text-[#12263f] hover:bg-[#f8fafc]"
+                      }`}
+                    >
+                      <span className="truncate pr-2">{o.label}</span>
+                      {isSelected && (
+                        <span className="text-[#1767a8] font-bold text-sm shrink-0">
+                          ✓
+                        </span>
+                      )}
+                    </li>
+                  );
+                })
+              ) : (
+                <li className="px-4 py-3 text-center text-sm text-[#94a3b8]">
+                  Tidak ada data yang cocok
+                </li>
+              )}
+            </ul>
+          </div>
+        )}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 export const Field = ({ id, label, opsional, className = "", ...props }) => (
   <div className={className}>
