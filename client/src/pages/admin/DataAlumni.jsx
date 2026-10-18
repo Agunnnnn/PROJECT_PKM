@@ -87,8 +87,14 @@ export default function DataAlumni({ onTambah, onExport, onEdit, onHapus }) {
     }
   };
 
+  const [masterJurusan, setMasterJurusan] = useState([]);
+
   useEffect(() => {
     muatData();
+    api
+      .get("/alumni/jurusan-list")
+      .then((res) => setMasterJurusan(res.data || []))
+      .catch((err) => console.error("Gagal memuat master jurusan:", err));
   }, []);
 
   // Hitung ulang relevansi ML untuk baris yang masih belum memiliki relevansi
@@ -112,13 +118,16 @@ export default function DataAlumni({ onTambah, onExport, onEdit, onHapus }) {
     }
   };
 
-  // Daftar jurusan unik dari data yang tersedia
+  // Seluruh daftar jurusan dari master database sekolah & respon survei
   const daftarJurusan = useMemo(() => {
     const list = Array.from(
-      new Set(daftar.map((a) => a.jurusan).filter(Boolean)),
+      new Set([
+        ...masterJurusan,
+        ...daftar.map((a) => a.jurusan).filter(Boolean),
+      ]),
     );
     return list.sort();
-  }, [daftar]);
+  }, [masterJurusan, daftar]);
 
   const tampil = useMemo(
     () =>

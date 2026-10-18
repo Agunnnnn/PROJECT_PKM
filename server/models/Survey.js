@@ -104,3 +104,54 @@ export const getSurveysTanpaRelevansi = async () => {
     );
     return rows;
 };
+
+export const getLaporanByTahun = async (tahun) => {
+    const [alumniRows] = await pool.query(
+        "SELECT COUNT(*) AS total FROM alumni WHERE tahun_lulus = ?",
+        [tahun],
+    );
+    const totalAlumni = alumniRows[0]?.total || 0;
+
+    const [surveyRows] = await pool.query(
+        `SELECT s.status_saat_ini, s.relevansi_jurusan
+         FROM survey s
+         JOIN alumni a ON s.alumni_id = a.id
+         WHERE a.tahun_lulus = ?`,
+        [tahun],
+    );
+
+    const sudahMengisi = surveyRows.length;
+    const belumMengisi = Math.max(0, totalAlumni - sudahMengisi);
+
+    let bekerja = 0;
+    let kuliah = 0;
+    let wirausaha = 0;
+    let belumBekerjaSurvey = 0;
+
+    for (const r of surveyRows) {
+        if (r.status_saat_ini === "Bekerja") bekerja++;
+        else if (r.status_saat_ini === "Kuliah") kuliah++;
+        else if (r.status_saat_ini === "Wirausaha") wirausaha++;
+        else if (r.status_saat_ini === "Belum Bekerja") belumBekerjaSurvey++;
+    }
+
+    const belumBekerja = belumBekerjaSurvey + belumMengisi;
+    const bekerjaKuliahPersen =
+        totalAlumni > 0
+            ? Math.round(((bekerja + kuliah) / totalAlumni) * 100)
+            : 0;
+
+    return {
+        tahun: Number(tahun),
+        totalAlumni,
+        sudahMengisi,
+        belumMengisi,
+        bekerjaKuliahPersen,
+        status: {
+            bekerja,
+            kuliah,
+            wirausaha,
+            belumBekerja,
+        },
+    };
+};
