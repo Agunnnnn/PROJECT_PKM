@@ -20,17 +20,63 @@ const btnOutline =
 const btnSolid =
   "h-[52px] rounded-xl bg-[#1767a8] px-6 font-['Poppins',sans-serif] text-[15px] font-semibold text-white transition-colors hover:bg-[#12558c] focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-[#8cc1ee]";
 
+const API_BASE_URL = "http://localhost:5000";
+
+const getFotoUrl = (foto) => {
+  if (!foto) return null;
+  if (
+    foto.startsWith("http://") ||
+    foto.startsWith("https://") ||
+    foto.startsWith("blob:") ||
+    foto.startsWith("data:")
+  ) {
+    return foto;
+  }
+  return `${API_BASE_URL}${foto.startsWith("/") ? "" : "/"}${foto}`;
+};
+
 /* ---------- Avatar ---------- */
-const Avatar = ({ foto, ukuran = "h-14 w-14", children }) => (
-  <div
-    className={`${ukuran} grid flex-none place-items-center overflow-hidden rounded-full bg-[#e0e7ff]`}
+const Avatar = ({ foto, ukuran = "h-14 w-14", children }) => {
+  const [imgError, setImgError] = useState(false);
+  const url = getFotoUrl(foto);
+
+  useEffect(() => {
+    setImgError(false);
+  }, [foto]);
+
+  return (
+    <div
+      className={`${ukuran} grid flex-none place-items-center overflow-hidden rounded-full bg-[#e0e7ff] text-[#1767a8]`}
+    >
+      {url && !imgError ? (
+        <img
+          src={url}
+          alt="Foto profil"
+          className="h-full w-full object-cover"
+          onError={() => setImgError(true)}
+        />
+      ) : (
+        children
+      )}
+    </div>
+  );
+};
+
+const CameraIcon = () => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
   >
-    {foto ? (
-      <img src={foto} alt="Foto profil" className="h-full w-full object-cover" />
-    ) : (
-      children
-    )}
-  </div>
+    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+    <circle cx="12" cy="13" r="4" />
+  </svg>
 );
 
 const PersonIcon = () => (
@@ -74,7 +120,9 @@ function ModalEdit({ profil, onClose, onSimpan }) {
     email: profil.email || "",
     telepon: profil.telepon || "",
   });
-  const [foto, setFoto] = useState(profil.foto);
+  const [fotoPreview, setFotoPreview] = useState(profil.foto || null);
+  const [fotoFile, setFotoFile] = useState(null);
+  const [hapusFoto, setHapusFoto] = useState(false);
   const inputFoto = useRef(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -96,7 +144,31 @@ function ModalEdit({ profil, onClose, onSimpan }) {
 
   const pilihFoto = (e) => {
     const file = e.target.files?.[0];
-    if (file) setFoto(URL.createObjectURL(file));
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setError("File yang dipilih harus berupa gambar (JPG, PNG, GIF, WEBP).");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setError("Ukuran gambar maksimal 5MB.");
+      return;
+    }
+
+    setError("");
+    setFotoFile(file);
+    setFotoPreview(URL.createObjectURL(file));
+    setHapusFoto(false);
+  };
+
+  const handleHapusFoto = () => {
+    setFotoFile(null);
+    setFotoPreview(null);
+    setHapusFoto(true);
+    if (inputFoto.current) {
+      inputFoto.current.value = "";
+    }
   };
 
   const submit = async (e) => {
@@ -105,15 +177,21 @@ function ModalEdit({ profil, onClose, onSimpan }) {
       return setError("Username tidak boleh kosong.");
     }
     setLoading(true);
-    await onSimpan({
-      ...profil,
-      nama: form.nama.trim() || profil.nama,
-      username: form.username.trim(),
-      email: form.email.trim(),
-      telepon: form.telepon.trim(),
-      foto,
-    });
-    setLoading(false);
+    try {
+      await onSimpan({
+        ...profil,
+        nama: form.nama.trim() || profil.nama,
+        username: form.username.trim(),
+        email: form.email.trim(),
+        telepon: form.telepon.trim(),
+        fotoFile,
+        hapusFoto,
+      });
+    } catch (err) {
+      setError(err?.response?.data?.message || err?.message || "Gagal menyimpan perubahan.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -146,8 +224,8 @@ function ModalEdit({ profil, onClose, onSimpan }) {
           )}
 
           {/* Foto */}
-          <div className="mt-7 flex items-center gap-5">
-            <Avatar foto={foto} ukuran="h-[84px] w-[84px]">
+          <div className="mt-7 flex flex-wrap items-center gap-5">
+            <Avatar foto={fotoPreview} ukuran="h-[84px] w-[84px]">
               <span className="font-['Poppins',sans-serif] text-[28px] font-bold text-[#1767a8]">
                 {inisial(form.nama || profil.nama)}
               </span>
@@ -156,21 +234,34 @@ function ModalEdit({ profil, onClose, onSimpan }) {
               <div className="font-['Poppins',sans-serif] text-lg font-semibold text-[#12263f]">
                 Foto Profil
               </div>
-              <div className="text-[15px] text-[#5b7794]">Unggah foto baru (opsional)</div>
+              <div className="text-[15px] text-[#5b7794]">
+                Unggah foto baru (maks. 5MB, format JPG/PNG/WEBP)
+              </div>
               <input
                 ref={inputFoto}
                 type="file"
-                accept="image/*"
+                accept="image/jpeg,image/png,image/webp,image/gif"
                 onChange={pilihFoto}
                 className="hidden"
               />
-              <button
-                type="button"
-                onClick={() => inputFoto.current?.click()}
-                className="mt-2 h-10 rounded-xl border border-[#cbd5e1] bg-white px-6 text-[15px] text-[#1767a8] hover:bg-[#f1f5f9]"
-              >
-                Pilih Foto
-              </button>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => inputFoto.current?.click()}
+                  className="h-10 rounded-xl border border-[#cbd5e1] bg-white px-5 text-[15px] font-medium text-[#1767a8] transition-colors hover:bg-[#f1f5f9]"
+                >
+                  {fotoPreview ? "Ganti Foto" : "Pilih Foto"}
+                </button>
+                {fotoPreview && (
+                  <button
+                    type="button"
+                    onClick={handleHapusFoto}
+                    className="h-10 rounded-xl border border-red-200 bg-red-50 px-4 text-[15px] font-medium text-red-600 transition-colors hover:bg-red-100"
+                  >
+                    Hapus Foto
+                  </button>
+                )}
+              </div>
             </div>
           </div>
 
@@ -493,7 +584,7 @@ export default function Profil() {
           ...res.data,
           status: "Aktif",
           terakhirLogin: prev.terakhirLogin,
-          foto: prev.foto,
+          foto: res.data?.foto || null,
         }));
       } catch (err) {
         tampilPesan(
@@ -513,22 +604,94 @@ export default function Profil() {
     setTimeout(() => setPesan(""), 4000);
   };
 
+  const quickInputFoto = useRef(null);
+
+  // Quick upload foto langsung dari avatar di halaman profil
+  const handleQuickUploadFoto = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      return tampilPesan("File harus berupa gambar (JPG, PNG, GIF, WEBP).", "error");
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      return tampilPesan("Ukuran gambar maksimal 5MB.", "error");
+    }
+
+    try {
+      const formData = new FormData();
+      formData.append("foto", file);
+      const res = await api.post("/auth/profil/foto", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      const fotoUrl = res.data?.foto || res.data?.profil?.foto;
+      setProfil((prev) => ({
+        ...prev,
+        foto: fotoUrl,
+      }));
+      tampilPesan("Foto profil berhasil diperbarui!");
+    } catch (err) {
+      tampilPesan(
+        err.response?.data?.message || "Gagal mengunggah foto profil.",
+        "error"
+      );
+    } finally {
+      if (quickInputFoto.current) quickInputFoto.current.value = "";
+    }
+  };
+
+  // Quick hapus foto langsung dari halaman profil
+  const handleQuickHapusFoto = async () => {
+    if (!window.confirm("Apakah Anda yakin ingin menghapus foto profil?")) return;
+    try {
+      await api.delete("/auth/profil/foto");
+      setProfil((prev) => ({
+        ...prev,
+        foto: null,
+      }));
+      tampilPesan("Foto profil berhasil dihapus.");
+    } catch (err) {
+      tampilPesan(
+        err.response?.data?.message || "Gagal menghapus foto profil.",
+        "error"
+      );
+    }
+  };
+
   // Simpan perubahan profil ke API
   const simpan = async (dataBaru) => {
     try {
-      const res = await api.put("/auth/profil", {
-        nama: dataBaru.nama,
-        username: dataBaru.username,
-        email: dataBaru.email,
-        telepon: dataBaru.telepon,
-        role: dataBaru.role,
+      const formData = new FormData();
+      formData.append("nama", dataBaru.nama);
+      formData.append("username", dataBaru.username);
+      formData.append("email", dataBaru.email);
+      formData.append("telepon", dataBaru.telepon);
+      formData.append("role", dataBaru.role || "Administrator");
+
+      if (dataBaru.fotoFile) {
+        formData.append("foto", dataBaru.fotoFile);
+      } else if (dataBaru.hapusFoto) {
+        formData.append("hapusFoto", "true");
+      }
+
+      const res = await api.put("/auth/profil", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
       });
 
       const profilTerbaru = res.data?.profil || dataBaru;
-      setProfil((prev) => ({ ...prev, ...profilTerbaru }));
+      setProfil((prev) => ({
+        ...prev,
+        ...profilTerbaru,
+        status: "Aktif",
+        terakhirLogin: prev.terakhirLogin,
+        foto: profilTerbaru.foto !== undefined ? profilTerbaru.foto : prev.foto,
+      }));
 
       // Update localStorage agar konsisten dengan username baru
-      localStorage.setItem("admin_user", profilTerbaru.username);
+      if (profilTerbaru.username) {
+        localStorage.setItem("admin_user", profilTerbaru.username);
+      }
 
       setEdit(false);
       tampilPesan("Profil berhasil diperbarui.");
@@ -594,17 +757,55 @@ export default function Profil() {
           Informasi Akun
         </h2>
         <div className="mt-5 flex items-center gap-5">
-          <Avatar foto={profil.foto} ukuran="h-14 w-14 lg:h-[72px] lg:w-[72px]">
-            <PersonIcon />
-          </Avatar>
+          <div className="relative group">
+            <Avatar foto={profil.foto} ukuran="h-16 w-16 lg:h-20 lg:w-20">
+              <span className="font-['Poppins',sans-serif] text-2xl lg:text-3xl font-bold text-[#1767a8]">
+                {inisial(profil.nama || profil.username)}
+              </span>
+            </Avatar>
+            <input
+              ref={quickInputFoto}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              onChange={handleQuickUploadFoto}
+              className="hidden"
+            />
+            <button
+              type="button"
+              onClick={() => quickInputFoto.current?.click()}
+              title="Ganti foto profil"
+              aria-label="Ganti foto profil"
+              className="absolute -bottom-1 -right-1 flex h-8 w-8 items-center justify-center rounded-full border-2 border-white bg-[#1767a8] text-white shadow-md transition-transform hover:scale-110 hover:bg-[#12558c]"
+            >
+              <CameraIcon />
+            </button>
+          </div>
           <div>
             <div className="font-['Poppins',sans-serif] text-xl font-bold text-[#12263f]">
               {profil.nama || profil.username}
             </div>
             <div className="text-base text-[#5b7794]">{profil.role}</div>
-            <span className="mt-2 inline-block rounded-full bg-[#dcfce7] px-4 py-1 font-['Poppins',sans-serif] text-[14px] font-semibold text-[#166534]">
-              Akun Aktif
-            </span>
+            <div className="mt-2 flex flex-wrap items-center gap-2.5">
+              <span className="inline-block rounded-full bg-[#dcfce7] px-4 py-1 font-['Poppins',sans-serif] text-[14px] font-semibold text-[#166534]">
+                Akun Aktif
+              </span>
+              <button
+                type="button"
+                onClick={() => quickInputFoto.current?.click()}
+                className="text-xs font-semibold text-[#1767a8] hover:underline"
+              >
+                Ubah Foto
+              </button>
+              {profil.foto && (
+                <button
+                  type="button"
+                  onClick={handleQuickHapusFoto}
+                  className="text-xs font-semibold text-red-500 hover:underline"
+                >
+                  Hapus Foto
+                </button>
+              )}
+            </div>
           </div>
         </div>
 

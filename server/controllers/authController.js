@@ -1,13 +1,20 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import path from "path";
+import fs from "fs";
+import { fileURLToPath } from "url";
 import {
   findAdminByUsername,
   findAdminById,
   updateAdminPassword,
   getAdminProfile,
   updateAdminProfile,
+  updateAdminFoto,
   isUsernameTaken,
 } from "../models/Admin.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // ─── Login ────────────────────────────────────────────────────────────────────
 export const loginAdmin = async (req, res) => {
@@ -121,7 +128,7 @@ export const updateProfilAdmin = async (req, res) => {
     const adminId = req.admin?.id;
     if (!adminId) return res.status(401).json({ message: "Tidak terautentikasi" });
 
-    const { username, nama, email, telepon, role } = req.body;
+    const { username, nama, email, telepon, role, hapusFoto } = req.body;
 
     if (!username || !username.trim()) {
       return res.status(400).json({ message: "Username wajib diisi" });
@@ -133,18 +140,93 @@ export const updateProfilAdmin = async (req, res) => {
       return res.status(400).json({ message: "Username sudah digunakan oleh akun lain" });
     }
 
+    const currentProfil = await getAdminProfile(adminId);
+    let fotoBaru = undefined;
+
+    // Jika ada upload foto baru via multipart
+    if (req.file) {
+      fotoBaru = `/uploads/${req.file.filename}`;
+      // Hapus foto lama jika tersimpan di uploads
+      if (currentProfil?.foto && currentProfil.foto.startsWith("/uploads/")) {
+        const oldFile = path.join(__dirname, "..", currentProfil.foto);
+        if (fs.existsSync(oldFile)) {
+          try { fs.unlinkSync(oldFile); } catch (e) { /* abaikan jika gagal hapus */ }
+        }
+      }
+    } else if (hapusFoto === "true" || hapusFoto === true) {
+      // Admin memilih hapus foto profil
+      fotoBaru = null;
+      if (currentProfil?.foto && currentProfil.foto.startsWith("/uploads/")) {
+        const oldFile = path.join(__dirname, "..", currentProfil.foto);
+        if (fs.existsSync(oldFile)) {
+          try { fs.unlinkSync(oldFile); } catch (e) { /* abaikan jika gagal hapus */ }
+        }
+      }
+    }
+
     await updateAdminProfile(adminId, {
       username: username.trim(),
       nama: nama?.trim() || username.trim(),
       email: email?.trim() || "",
       telepon: telepon?.trim() || "",
       role: role?.trim() || "Administrator",
+      foto: fotoBaru,
     });
 
     // Ambil data terbaru setelah update
     const profilBaru = await getAdminProfile(adminId);
 
     res.json({ message: "Profil berhasil diperbarui", profil: profilBaru });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// ─── Khusus Upload Foto Saja ───────────────────────────────────────────────────
+export const uploadFotoAdmin = async (req, res) => {
+  try {
+    const adminId = req.admin?.id;
+    if (!adminId) return res.status(401).json({ message: "Tidak terautentikasi" });
+
+    if (!req.file) {
+      return res.status(400).json({ message: "Tidak ada file foto yang dipilih" });
+    }
+
+    const currentProfil = await getAdminProfile(adminId);
+    if (currentProfil?.foto && currentProfil.foto.startsWith("/uploads/")) {
+      const oldFile = path.join(__dirname, "..", currentProfil.foto);
+      if (fs.existsSync(oldFile)) {
+        try { fs.unlinkSync(oldFile); } catch (e) { /* abaikan */ }
+      }
+    }
+
+    const fotoUrl = `/uploads/${req.file.filename}`;
+    await updateAdminFoto(adminId, fotoUrl);
+
+    const profilBaru = await getAdminProfile(adminId);
+    res.json({ message: "Foto profil berhasil diperbarui", foto: fotoUrl, profil: profilBaru });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// ─── Hapus Foto Profil ─────────────────────────────────────────────────────────
+export const hapusFotoAdmin = async (req, res) => {
+  try {
+    const adminId = req.admin?.id;
+    if (!adminId) return res.status(401).json({ message: "Tidak terautentikasi" });
+
+    const currentProfil = await getAdminProfile(adminId);
+    if (currentProfil?.foto && currentProfil.foto.startsWith("/uploads/")) {
+      const oldFile = path.join(__dirname, "..", currentProfil.foto);
+      if (fs.existsSync(oldFile)) {
+        try { fs.unlinkSync(oldFile); } catch (e) { /* abaikan */ }
+      }
+    }
+
+    await updateAdminFoto(adminId, null);
+    const profilBaru = await getAdminProfile(adminId);
+    res.json({ message: "Foto profil berhasil dihapus", profil: profilBaru });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

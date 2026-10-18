@@ -25,6 +25,7 @@ const migrate = async () => {
     await addColumnIfMissing("email",   "VARCHAR(100) DEFAULT NULL");
     await addColumnIfMissing("telepon", "VARCHAR(20) DEFAULT NULL");
     await addColumnIfMissing("role",    "VARCHAR(50) DEFAULT 'Administrator'");
+    await addColumnIfMissing("foto",    "VARCHAR(255) DEFAULT NULL");
 
     console.log("\n✅ Migrasi selesai!");
   } catch (err) {
