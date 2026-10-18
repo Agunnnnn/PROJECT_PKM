@@ -83,8 +83,9 @@ export default function AdminNavbar() {
 
   const handleLogout = () => {
     localStorage.removeItem("token");
+    localStorage.removeItem("admin_user");
     setOpen(false);
-    navigate("/login");
+    navigate("/", { replace: true });
   };
 
   // Tutup drawer saat pindah halaman

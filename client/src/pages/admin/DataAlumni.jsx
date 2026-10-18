@@ -39,6 +39,47 @@ export default function DataAlumni({ onTambah, onExport, onEdit, onHapus }) {
   const [halaman, setHalaman] = useState(1);
   const [sedangHitung, setSedangHitung] = useState(false);
   const [pesanHitung, setPesanHitung] = useState("");
+  const [sedangExport, setSedangExport] = useState(false);
+
+  const handleExportExcel = async () => {
+    try {
+      setSedangExport(true);
+      setError("");
+      const params = {};
+      if (jurusan && jurusan !== "Semua") params.jurusan = jurusan;
+      if (cari && cari.trim()) params.cari = cari.trim();
+
+      const res = await api.get("/alumni/export-excel", {
+        params,
+        responseType: "blob",
+      });
+
+      const blob = new Blob([res.data], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      const tgl = new Date().toISOString().slice(0, 10);
+      const labelJurusan =
+        jurusan && jurusan !== "Semua"
+          ? `-${jurusan.toLowerCase().replace(/[^a-z0-9]/g, "-")}`
+          : "";
+      link.setAttribute("download", `data-alumni${labelJurusan}-${tgl}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      setPesanHitung("Data alumni berhasil diekspor ke Excel!");
+    } catch (err) {
+      console.error("Gagal ekspor alumni:", err);
+      setError(
+        err.response?.data?.message || "Gagal mengekspor data alumni ke Excel.",
+      );
+    } finally {
+      setSedangExport(false);
+    }
+  };
 
   const perHalaman = 10;
 
@@ -286,10 +327,26 @@ export default function DataAlumni({ onTambah, onExport, onEdit, onHapus }) {
           {/* Export */}
           <button
             type="button"
-            onClick={onExport}
-            className="order-5 h-11 shrink-0 whitespace-nowrap rounded-xl border border-slate-200 bg-white px-5 text-base text-slate-700 transition hover:bg-slate-50 lg:order-4 lg:h-12 lg:px-6"
+            onClick={onExport || handleExportExcel}
+            disabled={sedangExport || loading}
+            title="Unduh seluruh data alumni ke format Excel (.xlsx)"
+            className="order-5 inline-flex h-11 shrink-0 items-center gap-2 whitespace-nowrap rounded-xl border border-slate-200 bg-white px-5 text-base font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 lg:order-4 lg:h-12 lg:px-6"
           >
-            Export Data
+            <svg
+              className="h-4 w-4 text-emerald-600"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            {sedangExport ? "Mengekspor..." : "Export ke Excel"}
           </button>
         </div>
       </section>
