@@ -1,0 +1,26 @@
+[
+  {
+    "tipe": "bekerja",
+    "jurusan": "Bisnis Daring dan Pemasaran",
+    "teks": "Kasir",
+    "label": "Sangat Sesuai"
+  },
+  {
+    "tipe": "bekerja",
+    "jurusan": "Perhotelan",
+    "teks": "Barista",
+    "label": "Sangat Sesuai"
+  },
+  {
+    "tipe": "bekerja",
+    "jurusan": "Perhotelan",
+    "teks": "Kasir Restoran",
+    "label": "Sangat Sesuai"
+  },
+  {
+    "tipe": "kuliah",
+    "jurusan": "Perhotelan",
+    "teks": "Sastra Inggris",
+    "label": "Cukup Sesuai"
+  }
+]

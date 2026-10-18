@@ -29,6 +29,13 @@ export const getAllAlumni = async () => {
     return rows;
 };
 
+export const getDistinctTahun = async () => {
+    const [rows] = await pool.query(
+        "SELECT DISTINCT tahun_lulus FROM alumni ORDER BY tahun_lulus DESC",
+    );
+    return rows.map((r) => r.tahun_lulus);
+};
+
 export const getDistinctJurusan = async () => {
     const [rows] = await pool.query(
         "SELECT DISTINCT jurusan FROM alumni ORDER BY jurusan ASC",
@@ -56,6 +63,7 @@ export const getAlumniWithSurvey = async ({ jurusan, tahunLulus, search } = {}) 
     let query = `
         SELECT 
             a.id, a.nis, a.nama, a.jurusan, a.tahun_lulus, a.email, a.no_hp,
+            s.id AS survey_id,
             s.status_saat_ini, s.nama_perusahaan, s.bidang_kerja, s.relevansi_jurusan,
             s.lama_tunggu_kerja, s.nama_kampus, s.jurusan_kampus, s.saran_untuk_sekolah,
             s.created_at AS tanggal_survey
@@ -84,5 +92,49 @@ export const getAlumniWithSurvey = async ({ jurusan, tahunLulus, search } = {}) 
 
     const [rows] = await pool.query(query, params);
     return rows;
+};
+
+export const updateAlumni = async (id, { nis, nama, jurusan, tahunLulus, email, noHp }) => {
+    const [result] = await pool.query(
+        "UPDATE alumni SET nis = ?, nama = ?, jurusan = ?, tahun_lulus = ?, email = ?, no_hp = ? WHERE id = ?",
+        [nis, nama, jurusan, tahunLulus, email || null, noHp || null, id],
+    );
+    return result.affectedRows > 0;
+};
+
+export const deleteAlumni = async (id) => {
+    // Survey akan terhapus otomatis jika ada ON DELETE CASCADE, atau hapus manual dulu
+    await pool.query("DELETE FROM survey WHERE alumni_id = ?", [id]);
+    const [result] = await pool.query("DELETE FROM alumni WHERE id = ?", [id]);
+    return result.affectedRows > 0;
+};
+
+export const findAlumniById = async (id) => {
+    const [rows] = await pool.query("SELECT * FROM alumni WHERE id = ?", [id]);
+    return rows[0];
+};
+
+// Bulk insert untuk import; skip jika NIS sudah ada (INSERT IGNORE)
+export const bulkInsertAlumni = async (rows) => {
+    if (!rows || rows.length === 0) return { inserted: 0, skipped: 0 };
+    let inserted = 0;
+    let skipped = 0;
+    for (const r of rows) {
+        const existing = await findAlumniByNis(r.nis);
+        if (existing) {
+            skipped++;
+            continue;
+        }
+        await createAlumni({
+            nis: r.nis,
+            nama: r.nama,
+            jurusan: r.jurusan,
+            tahunLulus: r.tahunLulus,
+            email: r.email || null,
+            noHp: r.noHp || null,
+        });
+        inserted++;
+    }
+    return { inserted, skipped };
 };
 
