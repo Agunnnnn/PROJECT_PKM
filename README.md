@@ -21,7 +21,7 @@
 cd server
 npm install
 
-
+npm run migrate  # ⬅️ jalankan SEKALI untuk update struktur database
 npm run dev    # jalankan terminal (server)
 ```
 
@@ -89,6 +89,7 @@ python app.py
 
 ## Troubleshooting
 
+- **"Unknown column 'nama' in 'field list'"** → tabel `admin` di database lokal belum diperbarui. Jalankan `npm run migrate` di folder `server/`
 - **"Gagal konek ke MySQL"** → pastikan service MySQL sudah jalan, dan kredensial di `.env` sudah benar
 - **Relevansi tidak muncul otomatis** → pastikan `ml-api` (`python3 app.py`) sedang berjalan; kalau mati, survey tetap bisa disimpan tapi kolom relevansi akan kosong
 - **Dashboard/Data Survey kosong** → isi dulu form survey minimal 1-2 kali dari halaman utama
