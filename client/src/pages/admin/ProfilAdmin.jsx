@@ -1,23 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-
-// ============================================================
-// DATA CONTOH - nanti ganti dengan data dari backend
-// Contoh: GET /api/admin/profil  |  PUT /api/admin/profil
-// ============================================================
-const profilAwal = {
-  nama: "Admin Tracer Study",
-  username: "admin_tracer",
-  email: "admin@sekolah.sch.id",
-  telepon: "",
-  role: "Administrator",
-  status: "Aktif",
-  terakhirLogin: "10 Okt 2026, 08.30 WIB",
-  foto: null, // URL foto, atau null untuk memakai ikon/inisial
-};
+import api from "../../api/axios";
 
 const inisial = (nama) =>
-  nama
+  (nama || "A")
     .split(" ")
     .filter(Boolean)
     .slice(0, 2)
@@ -40,11 +26,7 @@ const Avatar = ({ foto, ukuran = "h-14 w-14", children }) => (
     className={`${ukuran} grid flex-none place-items-center overflow-hidden rounded-full bg-[#e0e7ff]`}
   >
     {foto ? (
-      <img
-        src={foto}
-        alt="Foto profil"
-        className="h-full w-full object-cover"
-      />
+      <img src={foto} alt="Foto profil" className="h-full w-full object-cover" />
     ) : (
       children
     )}
@@ -52,30 +34,51 @@ const Avatar = ({ foto, ukuran = "h-14 w-14", children }) => (
 );
 
 const PersonIcon = () => (
-  <svg
-    width="32"
-    height="32"
-    viewBox="0 0 24 24"
-    fill="#1e40af"
-    aria-hidden="true"
-  >
+  <svg width="32" height="32" viewBox="0 0 24 24" fill="#1e40af" aria-hidden="true">
     <circle cx="12" cy="8" r="4.5" />
     <path d="M3.500 21c0-4 3.800-6.500 8.500-6.500s8.500 2.500 8.500 6.500c0 .6-.4 1-1 1h-15c-.6 0-1-.4-1-1z" />
+  </svg>
+);
+
+const EyeIcon = ({ show }) => (
+  <svg
+    width="20"
+    height="20"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    {show ? (
+      <>
+        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+        <line x1="1" y1="1" x2="23" y2="23" />
+      </>
+    ) : (
+      <>
+        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+        <circle cx="12" cy="12" r="3" />
+      </>
+    )}
   </svg>
 );
 
 /* ---------- Modal Edit Profil ---------- */
 function ModalEdit({ profil, onClose, onSimpan }) {
   const [form, setForm] = useState({
-    nama: profil.nama,
-    username: profil.username,
-    email: "",
-    telepon: "",
+    nama: profil.nama || "",
+    username: profil.username || "",
+    email: profil.email || "",
+    telepon: profil.telepon || "",
   });
   const [foto, setFoto] = useState(profil.foto);
   const inputFoto = useRef(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  // Tutup dengan Esc + kunci scroll
   useEffect(() => {
     const onKey = (e) => e.key === "Escape" && onClose();
     document.body.style.overflow = "hidden";
@@ -86,24 +89,31 @@ function ModalEdit({ profil, onClose, onSimpan }) {
     };
   }, [onClose]);
 
-  const ubah = (k) => (e) => setForm({ ...form, [k]: e.target.value });
+  const ubah = (k) => (e) => {
+    setForm({ ...form, [k]: e.target.value });
+    setError("");
+  };
 
   const pilihFoto = (e) => {
     const file = e.target.files?.[0];
-    if (file) setFoto(URL.createObjectURL(file)); // TODO: simpan `file` untuk diunggah ke backend
+    if (file) setFoto(URL.createObjectURL(file));
   };
 
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault();
-    onSimpan({
+    if (!form.username.trim()) {
+      return setError("Username tidak boleh kosong.");
+    }
+    setLoading(true);
+    await onSimpan({
       ...profil,
       nama: form.nama.trim() || profil.nama,
-      username: form.username.trim() || profil.username,
-      // Kolom yang dikosongkan = tidak diubah
-      email: form.email.trim() || profil.email,
-      telepon: form.telepon.trim() || profil.telepon,
+      username: form.username.trim(),
+      email: form.email.trim(),
+      telepon: form.telepon.trim(),
       foto,
     });
+    setLoading(false);
   };
 
   return (
@@ -113,11 +123,7 @@ function ModalEdit({ profil, onClose, onSimpan }) {
       aria-modal="true"
       aria-labelledby="judul-edit"
     >
-      <div
-        onClick={onClose}
-        className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm"
-      />
-
+      <div onClick={onClose} className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm" />
       <div className="relative flex min-h-full items-start justify-center p-4 lg:items-center">
         <form
           onSubmit={submit}
@@ -133,6 +139,12 @@ function ModalEdit({ profil, onClose, onSimpan }) {
             Perbarui informasi akun administrator.
           </p>
 
+          {error && (
+            <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+              {error}
+            </div>
+          )}
+
           {/* Foto */}
           <div className="mt-7 flex items-center gap-5">
             <Avatar foto={foto} ukuran="h-[84px] w-[84px]">
@@ -144,9 +156,7 @@ function ModalEdit({ profil, onClose, onSimpan }) {
               <div className="font-['Poppins',sans-serif] text-lg font-semibold text-[#12263f]">
                 Foto Profil
               </div>
-              <div className="text-[15px] text-[#5b7794]">
-                Unggah foto baru (opsional)
-              </div>
+              <div className="text-[15px] text-[#5b7794]">Unggah foto baru (opsional)</div>
               <input
                 ref={inputFoto}
                 type="file"
@@ -206,7 +216,7 @@ function ModalEdit({ profil, onClose, onSimpan }) {
             <input
               id="gmail"
               type="email"
-              placeholder="Masukkan gmail baru"
+              placeholder="Masukkan gmail"
               value={form.email}
               onChange={ubah("email")}
               className={fieldCls}
@@ -234,15 +244,17 @@ function ModalEdit({ profil, onClose, onSimpan }) {
             <button
               type="button"
               onClick={onClose}
+              disabled={loading}
               className={`${btnOutline} flex-1 sm:flex-none sm:px-9`}
             >
               Batal
             </button>
             <button
               type="submit"
+              disabled={loading}
               className={`${btnSolid} flex-1 sm:flex-none sm:px-10`}
             >
-              Simpan
+              {loading ? "Menyimpan..." : "Simpan"}
             </button>
           </div>
         </form>
@@ -251,45 +263,304 @@ function ModalEdit({ profil, onClose, onSimpan }) {
   );
 }
 
-/* ---------- Halaman ---------- */
-export default function Profil() {
-  const [profil, setProfil] = useState(profilAwal); // TODO: ambil dari API
-  const [edit, setEdit] = useState(false);
-  const [pesan, setPesan] = useState("");
+/* ---------- Modal Ubah Password ---------- */
+function ModalUbahPassword({ onClose, onSukses }) {
+  const [form, setForm] = useState({
+    passwordLama: "",
+    passwordBaru: "",
+    konfirmasiPassword: "",
+  });
+  const [showOld, setShowOld] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const simpan = (dataBaru) => {
-    // TODO: kirim ke backend (PUT /api/admin/profil), lalu perbarui state
-    setProfil(dataBaru);
-    setEdit(false);
-    setPesan("Profil berhasil diperbarui.");
-    setTimeout(() => setPesan(""), 3000);
+  useEffect(() => {
+    const onKey = (e) => e.key === "Escape" && onClose();
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = "";
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [onClose]);
+
+  const ubah = (k) => (e) => {
+    setForm({ ...form, [k]: e.target.value });
+    setError("");
   };
 
-  const ubahPassword = () => {
-    // TODO: arahkan ke halaman / modal ubah password
-    alert("Fitur ubah password belum tersedia.");
+  const submit = async (e) => {
+    e.preventDefault();
+    if (!form.passwordLama || !form.passwordBaru || !form.konfirmasiPassword) {
+      return setError("Semua kolom password wajib diisi.");
+    }
+    if (form.passwordBaru.length < 6) {
+      return setError("Password baru minimal 6 karakter.");
+    }
+    if (form.passwordBaru !== form.konfirmasiPassword) {
+      return setError("Konfirmasi password baru tidak cocok.");
+    }
+
+    try {
+      setLoading(true);
+      setError("");
+      const res = await api.put("/auth/ubah-password", {
+        passwordLama: form.passwordLama,
+        passwordBaru: form.passwordBaru,
+        konfirmasiPassword: form.konfirmasiPassword,
+      });
+      onSukses(
+        res.data?.message ||
+          "Password berhasil diperbarui! Gunakan password baru ini saat login berikutnya."
+      );
+      onClose();
+    } catch (err) {
+      setError(
+        err.response?.data?.message ||
+          "Gagal mengubah password. Pastikan password lama benar."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 overflow-y-auto"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="judul-ubah-password"
+    >
+      <div onClick={onClose} className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm" />
+      <div className="relative flex min-h-full items-start justify-center p-4 lg:items-center">
+        <form
+          onSubmit={submit}
+          className={`${card} relative w-full max-w-lg p-6 shadow-2xl lg:p-8`}
+        >
+          <h2
+            id="judul-ubah-password"
+            className="font-['Poppins',sans-serif] text-[24px] font-bold text-[#12263f]"
+          >
+            Ubah Password Admin
+          </h2>
+          <p className="mt-1 text-sm text-[#5b7794]">
+            Pastikan password baru Anda aman dan mudah diingat.
+          </p>
+
+          {error && (
+            <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+              {error}
+            </div>
+          )}
+
+          <div className="mt-5 space-y-4">
+            {/* Password Lama */}
+            <div>
+              <label
+                htmlFor="passwordLama"
+                className={`${labelCls} font-['Poppins',sans-serif] font-semibold text-[#12263f]`}
+              >
+                Password Lama
+              </label>
+              <div className="relative">
+                <input
+                  id="passwordLama"
+                  type={showOld ? "text" : "password"}
+                  placeholder="Masukkan password saat ini"
+                  value={form.passwordLama}
+                  onChange={ubah("passwordLama")}
+                  className={`${fieldCls} pr-12`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowOld(!showOld)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  aria-label="Toggle password lama"
+                >
+                  <EyeIcon show={showOld} />
+                </button>
+              </div>
+            </div>
+
+            {/* Password Baru */}
+            <div>
+              <label
+                htmlFor="passwordBaru"
+                className={`${labelCls} font-['Poppins',sans-serif] font-semibold text-[#12263f]`}
+              >
+                Password Baru
+              </label>
+              <div className="relative">
+                <input
+                  id="passwordBaru"
+                  type={showNew ? "text" : "password"}
+                  placeholder="Minimal 6 karakter"
+                  value={form.passwordBaru}
+                  onChange={ubah("passwordBaru")}
+                  className={`${fieldCls} pr-12`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowNew(!showNew)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  aria-label="Toggle password baru"
+                >
+                  <EyeIcon show={showNew} />
+                </button>
+              </div>
+            </div>
+
+            {/* Konfirmasi Password */}
+            <div>
+              <label
+                htmlFor="konfirmasiPassword"
+                className={`${labelCls} font-['Poppins',sans-serif] font-semibold text-[#12263f]`}
+              >
+                Konfirmasi Password Baru
+              </label>
+              <div className="relative">
+                <input
+                  id="konfirmasiPassword"
+                  type={showConfirm ? "text" : "password"}
+                  placeholder="Ulangi password baru"
+                  value={form.konfirmasiPassword}
+                  onChange={ubah("konfirmasiPassword")}
+                  className={`${fieldCls} pr-12`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirm(!showConfirm)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  aria-label="Toggle konfirmasi password"
+                >
+                  <EyeIcon show={showConfirm} />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-8 flex justify-end gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={loading}
+              className={`${btnOutline} flex-1 sm:flex-none sm:px-8`}
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className={`${btnSolid} flex-1 sm:flex-none sm:px-9`}
+            >
+              {loading ? "Menyimpan..." : "Simpan Password"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Halaman Utama ---------- */
+export default function Profil() {
+  const [profil, setProfil] = useState({
+    nama: "",
+    username: "",
+    email: "",
+    telepon: "",
+    role: "Administrator",
+    status: "Aktif",
+    terakhirLogin: "-",
+    foto: null,
+  });
+  const [loading, setLoading] = useState(true);
+  const [edit, setEdit] = useState(false);
+  const [modalPassword, setModalPassword] = useState(false);
+  const [pesan, setPesan] = useState("");
+  const [tipePesan, setTipePesan] = useState("sukses"); // "sukses" | "error"
+
+  // Load profil dari API saat halaman dibuka
+  useEffect(() => {
+    const fetchProfil = async () => {
+      try {
+        setLoading(true);
+        const res = await api.get("/auth/profil");
+        setProfil((prev) => ({
+          ...prev,
+          ...res.data,
+          status: "Aktif",
+          terakhirLogin: prev.terakhirLogin,
+          foto: prev.foto,
+        }));
+      } catch (err) {
+        tampilPesan(
+          err.response?.data?.message || "Gagal memuat data profil.",
+          "error"
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProfil();
+  }, []);
+
+  const tampilPesan = (msg, tipe = "sukses") => {
+    setTipePesan(tipe);
+    setPesan(msg);
+    setTimeout(() => setPesan(""), 4000);
+  };
+
+  // Simpan perubahan profil ke API
+  const simpan = async (dataBaru) => {
+    try {
+      const res = await api.put("/auth/profil", {
+        nama: dataBaru.nama,
+        username: dataBaru.username,
+        email: dataBaru.email,
+        telepon: dataBaru.telepon,
+        role: dataBaru.role,
+      });
+
+      const profilTerbaru = res.data?.profil || dataBaru;
+      setProfil((prev) => ({ ...prev, ...profilTerbaru }));
+
+      // Update localStorage agar konsisten dengan username baru
+      localStorage.setItem("admin_user", profilTerbaru.username);
+
+      setEdit(false);
+      tampilPesan("Profil berhasil diperbarui.");
+    } catch (err) {
+      setEdit(false);
+      tampilPesan(
+        err.response?.data?.message || "Gagal menyimpan profil.",
+        "error"
+      );
+    }
   };
 
   const fields = [
-    { label: "Nama", value: profil.nama, id: "f-nama" },
-    { label: "Username", value: profil.username, id: "f-username" },
-    { label: "Email", value: profil.email, id: "f-email" },
-    {
-      label: "Role / Hak Akses",
-      value: profil.role,
-      id: "f-role",
-      redup: true,
-    },
+    { label: "Nama", value: profil.nama || "-", id: "f-nama" },
+    { label: "Username", value: profil.username || "-", id: "f-username" },
+    { label: "Email", value: profil.email || "-", id: "f-email" },
+    { label: "Role / Hak Akses", value: profil.role || "Administrator", id: "f-role", redup: true },
   ];
+
+  if (loading) {
+    return (
+      <div className="mx-auto max-w-3xl py-20 text-center font-['Inter',sans-serif] text-[#5b7794]">
+        <div className="text-lg">Memuat data profil...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-3xl space-y-5 font-['Inter',sans-serif]">
       {/* Judul */}
       <div>
-        <nav
-          aria-label="Breadcrumb"
-          className="mb-3 text-[15px] text-[#7b8da6]"
-        >
+        <nav aria-label="Breadcrumb" className="mb-3 text-[15px] text-[#7b8da6]">
           <Link to="/admin/dashboard" className="hover:text-[#1767a8]">
             Dashboard
           </Link>{" "}
@@ -303,10 +574,15 @@ export default function Profil() {
         </p>
       </div>
 
+      {/* Notifikasi */}
       {pesan && (
         <div
           role="status"
-          className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-[15px] text-green-800"
+          className={`rounded-xl border px-4 py-3 text-[15px] ${
+            tipePesan === "error"
+              ? "border-red-200 bg-red-50 text-red-800"
+              : "border-green-200 bg-green-50 text-green-800"
+          }`}
         >
           {pesan}
         </div>
@@ -317,14 +593,13 @@ export default function Profil() {
         <h2 className="font-['Poppins',sans-serif] text-xl font-bold text-[#12263f]">
           Informasi Akun
         </h2>
-
         <div className="mt-5 flex items-center gap-5">
           <Avatar foto={profil.foto} ukuran="h-14 w-14 lg:h-[72px] lg:w-[72px]">
             <PersonIcon />
           </Avatar>
           <div>
             <div className="font-['Poppins',sans-serif] text-xl font-bold text-[#12263f]">
-              {profil.nama}
+              {profil.nama || profil.username}
             </div>
             <div className="text-base text-[#5b7794]">{profil.role}</div>
             <span className="mt-2 inline-block rounded-full bg-[#dcfce7] px-4 py-1 font-['Poppins',sans-serif] text-[14px] font-semibold text-[#166534]">
@@ -335,20 +610,14 @@ export default function Profil() {
 
         <div className="mt-5 grid grid-cols-2 gap-4 border-t border-[#e6edf5] pt-4">
           <div>
-            <div className="text-[13px] uppercase tracking-wide text-[#8a9bb0]">
-              Status Akun
-            </div>
+            <div className="text-[13px] uppercase tracking-wide text-[#8a9bb0]">Status Akun</div>
             <div className="font-['Poppins',sans-serif] text-lg font-bold text-[#166534]">
               {profil.status}
             </div>
           </div>
           <div>
-            <div className="text-[13px] uppercase tracking-wide text-[#8a9bb0]">
-              Terakhir Login
-            </div>
-            <div className="text-base text-[#12263f]">
-              {profil.terakhirLogin}
-            </div>
+            <div className="text-[13px] uppercase tracking-wide text-[#8a9bb0]">Terakhir Login</div>
+            <div className="text-base text-[#12263f]">{profil.terakhirLogin}</div>
           </div>
         </div>
       </section>
@@ -379,7 +648,11 @@ export default function Profil() {
         </div>
 
         <div className="mt-6 grid grid-cols-[1fr_1.4fr] gap-4 border-t border-[#e6edf5] pt-6 lg:ml-auto lg:max-w-md">
-          <button type="button" onClick={ubahPassword} className={btnOutline}>
+          <button
+            type="button"
+            onClick={() => setModalPassword(true)}
+            className={btnOutline}
+          >
             Ubah Password
           </button>
           <button
@@ -397,6 +670,13 @@ export default function Profil() {
           profil={profil}
           onClose={() => setEdit(false)}
           onSimpan={simpan}
+        />
+      )}
+
+      {modalPassword && (
+        <ModalUbahPassword
+          onClose={() => setModalPassword(false)}
+          onSukses={(msg) => tampilPesan(msg)}
         />
       )}
     </div>
