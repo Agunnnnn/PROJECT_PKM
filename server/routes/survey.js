@@ -6,6 +6,7 @@ import {
     getAllSurvey,
     getStats,
     getTahunList,
+    getLaporan,
     exportSurveyPdf,
     exportSurveyExcel,
 } from "../controllers/surveyController.js";
@@ -45,6 +46,7 @@ router.post("/", createSurvey); // publik — diisi alumni
 router.get("/", protect, getAllSurvey); // admin only
 router.get("/stats", protect, getStats); // admin only
 router.get("/tahun-list", protect, getTahunList); // admin only
+router.get("/laporan/:tahun", protect, getLaporan); // admin only
 router.get("/export/:tahun", protect, exportSurveyPdf); // admin only
 router.get("/export-excel/:tahun", protect, exportSurveyExcel); // admin only
 
