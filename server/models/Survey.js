@@ -86,6 +86,42 @@ export const countSurvey = async () => {
     return rows[0].total;
 };
 
+export const upsertSurveyByAlumniId = async (alumniId, data) => {
+    const {
+        statusSaatIni, namaPerusahaan, bidangKerja, relevansiJurusan,
+        lamaTungguKerja, namaKampus, jurusanKampus, saranUntukSekolah,
+    } = data;
+    // Cek apakah survey sudah ada untuk alumni ini
+    const [existing] = await pool.query(
+        "SELECT id FROM survey WHERE alumni_id = ?",
+        [alumniId],
+    );
+    if (existing.length > 0) {
+        await pool.query(
+            `UPDATE survey SET status_saat_ini=?, nama_perusahaan=?, bidang_kerja=?,
+             relevansi_jurusan=?, lama_tunggu_kerja=?, nama_kampus=?, jurusan_kampus=?,
+             saran_untuk_sekolah=? WHERE alumni_id=?`,
+            [
+                statusSaatIni, namaPerusahaan || null, bidangKerja || null,
+                relevansiJurusan || null, lamaTungguKerja || null,
+                namaKampus || null, jurusanKampus || null,
+                saranUntukSekolah || null, alumniId,
+            ],
+        );
+        return { id: existing[0].id, updated: true };
+    } else {
+        const result = await createSurveyEntry({
+            alumniId, statusSaatIni, namaPerusahaan, bidangKerja,
+            relevansiJurusan, lamaTungguKerja, namaKampus, jurusanKampus, saranUntukSekolah,
+        });
+        return { id: result.id, updated: false };
+    }
+};
+
+export const deleteSurveyByAlumniId = async (alumniId) => {
+    await pool.query("DELETE FROM survey WHERE alumni_id = ?", [alumniId]);
+};
+
 export const updateSurveyRelevansi = async (id, relevansi) => {
     const [result] = await pool.query(
         "UPDATE survey SET relevansi_jurusan = ? WHERE id = ?",
