@@ -51,3 +51,38 @@ export const getAlumniByJurusanTahun = async (jurusan, tahunLulus) => {
     );
     return rows;
 };
+
+export const getAlumniWithSurvey = async ({ jurusan, tahunLulus, search } = {}) => {
+    let query = `
+        SELECT 
+            a.id, a.nis, a.nama, a.jurusan, a.tahun_lulus, a.email, a.no_hp,
+            s.status_saat_ini, s.nama_perusahaan, s.bidang_kerja, s.relevansi_jurusan,
+            s.lama_tunggu_kerja, s.nama_kampus, s.jurusan_kampus, s.saran_untuk_sekolah,
+            s.created_at AS tanggal_survey
+        FROM alumni a
+        LEFT JOIN survey s ON a.id = s.alumni_id
+        WHERE 1=1
+    `;
+    const params = [];
+
+    if (jurusan && jurusan !== "Semua") {
+        query += " AND a.jurusan = ?";
+        params.push(jurusan);
+    }
+
+    if (tahunLulus && tahunLulus !== "Semua") {
+        query += " AND a.tahun_lulus = ?";
+        params.push(tahunLulus);
+    }
+
+    if (search && search.trim()) {
+        query += " AND (a.nama LIKE ? OR a.nis LIKE ?)";
+        params.push(`%${search.trim()}%`, `%${search.trim()}%`);
+    }
+
+    query += " ORDER BY a.tahun_lulus DESC, a.nama ASC";
+
+    const [rows] = await pool.query(query, params);
+    return rows;
+};
+
