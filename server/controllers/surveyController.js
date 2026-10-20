@@ -13,6 +13,7 @@ import {
     updateSurveyRelevansi,
     getSurveysTanpaRelevansi,
     getLaporanByTahun,
+    upsertSurveyByAlumniId,
 } from "../models/Survey.js";
 
 /**
@@ -114,6 +115,21 @@ export const createSurvey = async (req, res) => {
             saranUntukSekolah,
         } = req.body;
 
+        // ✅ FIX BUG #2: Validasi required fields
+        if (!nis || !nama || !jurusan || !tahunLulus || !statusSaatIni) {
+            return res.status(400).json({
+                message: "Field wajib diisi: nis, nama, jurusan, tahunLulus, statusSaatIni",
+            });
+        }
+
+        // ✅ FIX BUG #3: Validasi enum statusSaatIni
+        const validStatuses = ["Bekerja", "Kuliah", "Wirausaha", "Belum Bekerja"];
+        if (!validStatuses.includes(statusSaatIni)) {
+            return res.status(400).json({
+                message: `Status tidak valid. Pilih salah satu: ${validStatuses.join(", ")}`,
+            });
+        }
+
         // Cari atau buat data alumni dulu
         let alumni = await findAlumniByNis(nis);
         if (!alumni) {
@@ -138,8 +154,8 @@ export const createSurvey = async (req, res) => {
             // Tetap lanjut simpan survei dengan relevansi NULL (fail-safe)
         }
 
-        const survey = await createSurveyEntry({
-            alumniId: alumni.id,
+        // ✅ FIX BUG #1: UPSERT - Insert baru atau Update yang lama
+        const result = await upsertSurveyByAlumniId(alumni.id, {
             statusSaatIni,
             namaPerusahaan,
             bidangKerja,
@@ -150,9 +166,17 @@ export const createSurvey = async (req, res) => {
             saranUntukSekolah,
         });
 
-        res.status(201).json({ ...survey, relevansiJurusan });
+        res.status(201).json({
+            id: result.id,
+            relevansiJurusan,
+            updated: result.updated, // true = data di-update, false = data baru
+        });
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        // ✅ FIX BUG #2: Jangan expose SQL error ke client
+        console.error("Error creating survey:", error);
+        res.status(500).json({
+            message: "Terjadi kesalahan saat menyimpan survey. Silakan coba lagi.",
+        });
     }
 };
 
