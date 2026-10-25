@@ -9,10 +9,11 @@ import {
 } from "../controllers/authController.js";
 import { protect } from "../middleware/auth.js";
 import { handleUploadFoto } from "../middleware/upload.js";
+import { rateLimitLogin } from "../middleware/rateLimiter.js";
 
 const router = express.Router();
 
-router.post("/login", loginAdmin);
+router.post("/login", rateLimitLogin, loginAdmin);
 router.put("/ubah-password", protect, ubahPasswordAdmin);
 router.post("/ubah-password", protect, ubahPasswordAdmin);
 router.get("/profil", protect, getProfilAdmin);

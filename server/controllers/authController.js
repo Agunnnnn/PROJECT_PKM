@@ -19,7 +19,11 @@ const __dirname = path.dirname(__filename);
 // ─── Login ────────────────────────────────────────────────────────────────────
 export const loginAdmin = async (req, res) => {
   try {
-    const { username, password } = req.body;
+    const { username, password } = req.body || {};
+
+    if (!username || !password) {
+      return res.status(400).json({ message: "Username dan password wajib diisi" });
+    }
 
     const admin = await findAdminByUsername(username);
     if (!admin) {
@@ -134,6 +138,14 @@ export const updateProfilAdmin = async (req, res) => {
       return res.status(400).json({ message: "Username wajib diisi" });
     }
 
+    // ✅ FIX SECURITY: Cegah privilege escalation (Test #6)
+    // Pengguna tidak diizinkan mengubah role mereka menjadi Superuser atau role lainnya
+    if (role && role.trim() !== "Administrator") {
+      return res.status(400).json({
+        message: "Perubahan role tidak diizinkan. Privilege escalation ditolak.",
+      });
+    }
+
     // Cek apakah username sudah dipakai admin lain
     const taken = await isUsernameTaken(username.trim(), adminId);
     if (taken) {
@@ -169,7 +181,7 @@ export const updateProfilAdmin = async (req, res) => {
       nama: nama?.trim() || username.trim(),
       email: email?.trim() || "",
       telepon: telepon?.trim() || "",
-      role: role?.trim() || "Administrator",
+      role: "Administrator", // Kunci role tetap Administrator
       foto: fotoBaru,
     });
 
