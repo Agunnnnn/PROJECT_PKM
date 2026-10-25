@@ -1,0 +1,7 @@
+ID,Endpoint,Langkah,Expected,Actual,Severity,Status
+BUG-001,POST /api/alumni,"Kirim body kosong {} tanpa token (form survei publik)",400 Bad Request dengan pesan validasi field wajib,"500 Internal Server Error, body: {""message"":""Column 'nis' cannot be null""} (tidak ada validasi input; pesan error SQL bocor ke klien)",Medium,Open
+BUG-002,POST /api/auth/login,"Login dengan username=admin, password=salah",401 Unauthorized (kredensial salah),"400 Bad Request, body: {""message"":""Username atau password salah""}",Low,Open
+BUG-003,POST /api/survey/prediksi-relevansi,"Kirim body kosong {} tanpa token",400 Bad Request (jurusan dan status wajib diisi),"200 OK, body: {""relevansi"":null,""skor"":0,""tersedia"":false} (tidak ada validasi input)",Low,Open
+QA-N01,POST /api/auth/profil/foto,"Kirim request tanpa file (newman tidak mengunggah file)",200 setelah file valid diunggah,"400 ""Tidak ada file foto yang dipilih"" - perilaku benar untuk request tanpa file",Info,Not tested (perlu upload manual via Postman)
+QA-N02,POST /api/alumni/import-excel,"Kirim request tanpa file (newman tidak mengunggah file)",200 setelah file .xlsx valid diunggah,"400 ""File Excel tidak ditemukan."" - perilaku benar untuk request tanpa file",Info,Not tested (perlu upload manual via Postman)
+QA-N03,POST /api/alumni/import-sql,"Kirim request tanpa file (newman tidak mengunggah file)",200 setelah file .sql valid diunggah,"400 ""File SQL tidak ditemukan."" - perilaku benar untuk request tanpa file",Info,Not tested (perlu upload manual via Postman)

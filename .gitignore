@@ -1,0 +1,21 @@
+# macOS
+.DS_Store
+
+# Editor local-history/timestamped copies (e.g. "package.json 13-02-09-477.json")
+* [0-9][0-9]-[0-9][0-9]-[0-9][0-9]-[0-9][0-9][0-9].*
+
+Project_PKM.sql
+
+backup_pre_qa.sql
+.qa_tmp/
+
+# Folder internal workspace Postman
+.postman/
+
+# Pastikan file env tidak bocor
+.env
+server/.env
+
+# Jangan commit environment & globals postman yang berisi token
+postman/*environment*
+postman/*globals*
