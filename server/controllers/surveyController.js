@@ -84,9 +84,16 @@ export const hitungRelevansiModel = async ({
 // Endpoint publik: cek prediksi sebelum submit survei (langkah 2 -> langkah 3)
 export const prediksiRelevansi = async (req, res) => {
     try {
-        const { jurusan, statusSaatIni, bidangKerja, jurusanKampus } = req.body || {};
+        const { jurusan, statusSaatIni, bidangKerja, jurusanKampus, nis } = req.body || {};
+        let jurusanToUse = jurusan;
+        if (nis) {
+            const alumni = await findAlumniByNis(nis);
+            if (alumni && alumni.jurusan) {
+                jurusanToUse = alumni.jurusan;
+            }
+        }
         const hasil = await hitungRelevansiModel({
-            jurusan,
+            jurusan: jurusanToUse,
             statusSaatIni,
             bidangKerja,
             jurusanKampus,
@@ -136,11 +143,15 @@ export const createSurvey = async (req, res) => {
             alumni = await createAlumni({ nis, nama, jurusan, tahunLulus, email, noHp });
         }
 
+        // ✅ FIX DATA INTEGRITY: Gunakan jurusan resmi dari database alumni jika sudah terdaftar,
+        // mencegah manipulasi / spoofing jurusan dari client body
+        const jurusanAlumni = (alumni && alumni.jurusan) ? alumni.jurusan : jurusan;
+
         // Hitung ulang relevansi di sisi server (Bekerja & Kuliah), jangan percaya input client
         let relevansiJurusan = null;
         try {
             const hasilMl = await hitungRelevansiModel({
-                jurusan,
+                jurusan: jurusanAlumni,
                 statusSaatIni,
                 bidangKerja,
                 jurusanKampus,
