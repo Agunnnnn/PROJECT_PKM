@@ -196,11 +196,67 @@ export const hitungUlangRelevansi = async (req, res) => {
     try {
         const surveys = await getSurveysTanpaRelevansi();
         const diproses = surveys.length;
+
+        if (diproses === 0) {
+            return res.json({ diproses: 0, berhasil: 0, gagal: 0 });
+        }
+
+        const validLabels = ["Sangat Sesuai", "Cukup Sesuai", "Tidak Sesuai"];
+        const mlBaseUrl = process.env.ML_API_URL || "http://localhost:5001";
+
+        // ✅ FIX F-16: Fail-fast check apakah ML API hidup sebelum loop berat
+        try {
+            const healthRes = await fetch(`${mlBaseUrl.replace(/\/+$/, "")}/health`, {
+                signal: AbortSignal.timeout(1500),
+            });
+            if (!healthRes.ok) throw new Error("ML not healthy");
+        } catch {
+            return res.json({
+                diproses,
+                berhasil: 0,
+                gagal: diproses,
+                message: "Layanan ML API sedang tidak aktif.",
+            });
+        }
+
         let berhasil = 0;
         let gagal = 0;
 
-        const validLabels = ["Sangat Sesuai", "Cukup Sesuai", "Tidak Sesuai"];
+        // Gunakan batch endpoint /predict-batch jika tersedia
+        const endpointBatch = `${mlBaseUrl.replace(/\/+$/, "")}/predict-batch`;
+        const items = surveys.map((s) => ({
+            jurusan: s.jurusan,
+            tipe: s.status_saat_ini === "Kuliah" ? "kuliah" : "bekerja",
+            teks: s.status_saat_ini === "Kuliah" ? (s.jurusan_kampus || "") : (s.bidang_kerja || ""),
+        }));
 
+        try {
+            const batchRes = await fetch(endpointBatch, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ items }),
+                signal: AbortSignal.timeout(15000),
+            });
+
+            if (batchRes.ok) {
+                const batchData = await batchRes.json();
+                const listHasil = batchData.hasil || [];
+                for (let i = 0; i < surveys.length; i++) {
+                    const hasil = listHasil[i];
+                    if (hasil && validLabels.includes(hasil.relevansi)) {
+                        await updateSurveyRelevansi(surveys[i].id, hasil.relevansi);
+                        berhasil++;
+                    } else {
+                        gagal++;
+                    }
+                }
+                return res.json({ diproses, berhasil, gagal });
+            }
+        } catch (batchErr) {
+            console.warn("Fallback ke loop satuan:", batchErr.message);
+        }
+
+        // Fallback: loop per item jika batch gagal
         for (const s of surveys) {
             try {
                 const hasil = await hitungRelevansiModel({
@@ -250,7 +306,12 @@ export const getTahunList = async (req, res) => {
 export const exportSurveyPdf = async (req, res) => {
     try {
         const { tahun } = req.params;
-        const surveys = await getSurveyByTahun(tahun);
+
+        if (!tahun || !/^\d{4}$/.test(tahun.trim())) {
+            return res.status(400).json({ message: "Parameter tahun tidak valid. Harus berupa 4 digit angka." });
+        }
+
+        const surveys = await getSurveyByTahun(tahun.trim());
 
         if (surveys.length === 0) {
             return res
@@ -343,7 +404,12 @@ export const exportSurveyPdf = async (req, res) => {
 export const exportSurveyExcel = async (req, res) => {
     try {
         const { tahun } = req.params;
-        const surveys = await getSurveyByTahun(tahun);
+
+        if (!tahun || !/^\d{4}$/.test(tahun.trim())) {
+            return res.status(400).json({ message: "Parameter tahun tidak valid. Harus berupa 4 digit angka." });
+        }
+
+        const surveys = await getSurveyByTahun(tahun.trim());
 
         if (surveys.length === 0) {
             return res
@@ -424,7 +490,13 @@ export const getStats = async (req, res) => {
 export const getLaporan = async (req, res) => {
     try {
         const { tahun } = req.params;
-        const laporan = await getLaporanByTahun(tahun);
+
+        // ✅ FIX TES #19: Validasi format tahun (harus 4 digit angka)
+        if (!tahun || !/^\d{4}$/.test(tahun.trim())) {
+            return res.status(400).json({ message: "Parameter tahun tidak valid. Harus berupa 4 digit angka tahun." });
+        }
+
+        const laporan = await getLaporanByTahun(tahun.trim());
         res.json(laporan);
     } catch (error) {
         res.status(500).json({ message: error.message });
