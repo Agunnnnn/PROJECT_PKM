@@ -148,15 +148,21 @@ export const getLaporanByTahun = async (tahun) => {
     );
     const totalAlumni = alumniRows[0]?.total || 0;
 
+    // ✅ FIX TES #18: Gunakan survei terbaru per alumni (MAX id) untuk mencegah duplikasi data
     const [surveyRows] = await pool.query(
         `SELECT s.status_saat_ini, s.relevansi_jurusan
          FROM survey s
+         JOIN (
+             SELECT alumni_id, MAX(id) AS max_id
+             FROM survey
+             GROUP BY alumni_id
+         ) latest ON s.id = latest.max_id
          JOIN alumni a ON s.alumni_id = a.id
          WHERE a.tahun_lulus = ?`,
         [tahun],
     );
 
-    const sudahMengisi = surveyRows.length;
+    const sudahMengisi = Math.min(totalAlumni, surveyRows.length);
     const belumMengisi = Math.max(0, totalAlumni - sudahMengisi);
 
     let bekerja = 0;
@@ -174,7 +180,7 @@ export const getLaporanByTahun = async (tahun) => {
     const belumBekerja = belumBekerjaSurvey + belumMengisi;
     const bekerjaKuliahPersen =
         totalAlumni > 0
-            ? Math.round(((bekerja + kuliah) / totalAlumni) * 100)
+            ? Math.min(100, Math.round(((bekerja + kuliah) / totalAlumni) * 100))
             : 0;
 
     return {

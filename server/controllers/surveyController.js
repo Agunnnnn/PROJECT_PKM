@@ -306,7 +306,12 @@ export const getTahunList = async (req, res) => {
 export const exportSurveyPdf = async (req, res) => {
     try {
         const { tahun } = req.params;
-        const surveys = await getSurveyByTahun(tahun);
+
+        if (!tahun || !/^\d{4}$/.test(tahun.trim())) {
+            return res.status(400).json({ message: "Parameter tahun tidak valid. Harus berupa 4 digit angka." });
+        }
+
+        const surveys = await getSurveyByTahun(tahun.trim());
 
         if (surveys.length === 0) {
             return res
@@ -399,7 +404,12 @@ export const exportSurveyPdf = async (req, res) => {
 export const exportSurveyExcel = async (req, res) => {
     try {
         const { tahun } = req.params;
-        const surveys = await getSurveyByTahun(tahun);
+
+        if (!tahun || !/^\d{4}$/.test(tahun.trim())) {
+            return res.status(400).json({ message: "Parameter tahun tidak valid. Harus berupa 4 digit angka." });
+        }
+
+        const surveys = await getSurveyByTahun(tahun.trim());
 
         if (surveys.length === 0) {
             return res
@@ -480,7 +490,13 @@ export const getStats = async (req, res) => {
 export const getLaporan = async (req, res) => {
     try {
         const { tahun } = req.params;
-        const laporan = await getLaporanByTahun(tahun);
+
+        // ✅ FIX TES #19: Validasi format tahun (harus 4 digit angka)
+        if (!tahun || !/^\d{4}$/.test(tahun.trim())) {
+            return res.status(400).json({ message: "Parameter tahun tidak valid. Harus berupa 4 digit angka tahun." });
+        }
+
+        const laporan = await getLaporanByTahun(tahun.trim());
         res.json(laporan);
     } catch (error) {
         res.status(500).json({ message: error.message });

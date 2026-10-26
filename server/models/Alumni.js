@@ -68,7 +68,15 @@ export const getAlumniWithSurvey = async ({ jurusan, tahunLulus, search } = {}) 
             s.lama_tunggu_kerja, s.nama_kampus, s.jurusan_kampus, s.saran_untuk_sekolah,
             s.created_at AS tanggal_survey
         FROM alumni a
-        LEFT JOIN survey s ON a.id = s.alumni_id
+        LEFT JOIN (
+            SELECT s1.*
+            FROM survey s1
+            INNER JOIN (
+                SELECT alumni_id, MAX(id) AS max_id
+                FROM survey
+                GROUP BY alumni_id
+            ) s2 ON s1.id = s2.max_id
+        ) s ON a.id = s.alumni_id
         WHERE 1=1
     `;
     const params = [];
