@@ -16,6 +16,23 @@ import {
     upsertSurveyByAlumniId,
 } from "../models/Survey.js";
 
+// Helper normalisasi string agar aman dari TypeError jika input berupa number/null/dll.
+export const normalisasiString = (val, maxLen = 255) => {
+    if (typeof val === "string") return val.trim().slice(0, maxLen);
+    if (typeof val === "number") return String(val).trim().slice(0, maxLen);
+    return "";
+};
+
+// Helper validasi tahun (4 digit angka, antara 1990 sampai 2100)
+export const validasiTahun = (tahun) => {
+    if (typeof tahun !== "string" && typeof tahun !== "number") return null;
+    const str = String(tahun).trim();
+    if (!/^\d{4}$/.test(str)) return null;
+    const num = parseInt(str, 10);
+    if (num < 1990 || num > 2100) return null;
+    return num;
+};
+
 /**
  * Helper terpusat untuk memanggil Flask ML API
  * Menghubungkan tipe 'bekerja' & 'kuliah', serta menangani fail-safe
@@ -106,55 +123,53 @@ export const prediksiRelevansi = async (req, res) => {
 
 export const createSurvey = async (req, res) => {
     try {
-        const {
-            nis,
-            nama,
-            jurusan,
-            tahunLulus,
-            email,
-            noHp,
-            statusSaatIni,
-            namaPerusahaan,
-            bidangKerja,
-            lamaTungguKerja,
-            namaKampus,
-            jurusanKampus,
-            saranUntukSekolah,
-        } = req.body;
+        const body = req.body || {};
 
-        // ✅ FIX BUG #2: Validasi required fields
-        if (!nis || !nama || !jurusan || !tahunLulus || !statusSaatIni) {
+        // Normalisasi input string & batas panjang karakter (mencegah error jika input bukan string)
+        const nisClean = normalisasiString(body.nis, 50);
+        const namaClean = normalisasiString(body.nama, 100);
+        const statusClean = normalisasiString(body.statusSaatIni, 50);
+        const namaPerusahaanClean = normalisasiString(body.namaPerusahaan, 150);
+        const bidangKerjaClean = normalisasiString(body.bidangKerja, 150);
+        const lamaTungguClean = normalisasiString(body.lamaTungguKerja, 50);
+        const namaKampusClean = normalisasiString(body.namaKampus, 150);
+        const jurusanKampusClean = normalisasiString(body.jurusanKampus, 150);
+        const saranClean = normalisasiString(body.saranUntukSekolah, 1000);
+
+        // 1. Validasi field wajib
+        if (!nisClean || !namaClean || !statusClean) {
             return res.status(400).json({
-                message: "Field wajib diisi: nis, nama, jurusan, tahunLulus, statusSaatIni",
+                message: "Field wajib diisi: nis, nama, statusSaatIni",
             });
         }
 
-        // ✅ FIX BUG #3: Validasi enum statusSaatIni
+        // 2. Whitelist statusSaatIni
         const validStatuses = ["Bekerja", "Kuliah", "Wirausaha", "Belum Bekerja"];
-        if (!validStatuses.includes(statusSaatIni)) {
+        if (!validStatuses.includes(statusClean)) {
             return res.status(400).json({
                 message: `Status tidak valid. Pilih salah satu: ${validStatuses.join(", ")}`,
             });
         }
 
-        // Cari atau buat data alumni dulu
-        let alumni = await findAlumniByNis(nis);
+        // 3. Survei publik tidak membuat alumni baru, hanya menerima NIS yang sudah ada
+        const alumni = await findAlumniByNis(nisClean);
         if (!alumni) {
-            alumni = await createAlumni({ nis, nama, jurusan, tahunLulus, email, noHp });
+            return res.status(404).json({
+                message: "Data alumni dengan NIS tersebut tidak ditemukan di database sekolah. Pastikan NIS Anda sudah terdaftar.",
+            });
         }
 
-        // ✅ FIX DATA INTEGRITY: Gunakan jurusan resmi dari database alumni jika sudah terdaftar,
-        // mencegah manipulasi / spoofing jurusan dari client body
-        const jurusanAlumni = (alumni && alumni.jurusan) ? alumni.jurusan : jurusan;
+        // 4. Ambil jurusan langsung dari alumni.jurusan di DB (abaikan dari body client)
+        const jurusanAlumni = alumni.jurusan;
 
         // Hitung ulang relevansi di sisi server (Bekerja & Kuliah), jangan percaya input client
         let relevansiJurusan = null;
         try {
             const hasilMl = await hitungRelevansiModel({
                 jurusan: jurusanAlumni,
-                statusSaatIni,
-                bidangKerja,
-                jurusanKampus,
+                statusSaatIni: statusClean,
+                bidangKerja: bidangKerjaClean,
+                jurusanKampus: jurusanKampusClean,
             });
             const validLabels = ["Sangat Sesuai", "Cukup Sesuai", "Tidak Sesuai"];
             if (validLabels.includes(hasilMl.relevansi)) {
@@ -165,25 +180,24 @@ export const createSurvey = async (req, res) => {
             // Tetap lanjut simpan survei dengan relevansi NULL (fail-safe)
         }
 
-        // ✅ FIX BUG #1: UPSERT - Insert baru atau Update yang lama
+        // Simpan atau update jawaban survei (UPSERT)
         const result = await upsertSurveyByAlumniId(alumni.id, {
-            statusSaatIni,
-            namaPerusahaan,
-            bidangKerja,
+            statusSaatIni: statusClean,
+            namaPerusahaan: namaPerusahaanClean || null,
+            bidangKerja: bidangKerjaClean || null,
             relevansiJurusan,
-            lamaTungguKerja,
-            namaKampus,
-            jurusanKampus,
-            saranUntukSekolah,
+            lamaTungguKerja: lamaTungguClean || null,
+            namaKampus: namaKampusClean || null,
+            jurusanKampus: jurusanKampusClean || null,
+            saranUntukSekolah: saranClean || null,
         });
 
         res.status(201).json({
             id: result.id,
             relevansiJurusan,
-            updated: result.updated, // true = data di-update, false = data baru
+            updated: result.updated,
         });
     } catch (error) {
-        // ✅ FIX BUG #2: Jangan expose SQL error ke client
         console.error("Error creating survey:", error);
         res.status(500).json({
             message: "Terjadi kesalahan saat menyimpan survey. Silakan coba lagi.",
@@ -306,12 +320,15 @@ export const getTahunList = async (req, res) => {
 export const exportSurveyPdf = async (req, res) => {
     try {
         const { tahun } = req.params;
+        const tahunNum = validasiTahun(tahun);
 
-        if (!tahun || !/^\d{4}$/.test(tahun.trim())) {
-            return res.status(400).json({ message: "Parameter tahun tidak valid. Harus berupa 4 digit angka." });
+        if (!tahunNum) {
+            return res.status(400).json({
+                message: "Parameter tahun tidak valid. Harus berupa 4 digit angka antara 1990 sampai 2100.",
+            });
         }
 
-        const surveys = await getSurveyByTahun(tahun.trim());
+        const surveys = await getSurveyByTahun(tahunNum);
 
         if (surveys.length === 0) {
             return res
@@ -404,12 +421,15 @@ export const exportSurveyPdf = async (req, res) => {
 export const exportSurveyExcel = async (req, res) => {
     try {
         const { tahun } = req.params;
+        const tahunNum = validasiTahun(tahun);
 
-        if (!tahun || !/^\d{4}$/.test(tahun.trim())) {
-            return res.status(400).json({ message: "Parameter tahun tidak valid. Harus berupa 4 digit angka." });
+        if (!tahunNum) {
+            return res.status(400).json({
+                message: "Parameter tahun tidak valid. Harus berupa 4 digit angka antara 1990 sampai 2100.",
+            });
         }
 
-        const surveys = await getSurveyByTahun(tahun.trim());
+        const surveys = await getSurveyByTahun(tahunNum);
 
         if (surveys.length === 0) {
             return res
@@ -490,13 +510,16 @@ export const getStats = async (req, res) => {
 export const getLaporan = async (req, res) => {
     try {
         const { tahun } = req.params;
+        const tahunNum = validasiTahun(tahun);
 
-        // ✅ FIX TES #19: Validasi format tahun (harus 4 digit angka)
-        if (!tahun || !/^\d{4}$/.test(tahun.trim())) {
-            return res.status(400).json({ message: "Parameter tahun tidak valid. Harus berupa 4 digit angka tahun." });
+        // ✅ Validasi tahun (4 digit, 1990 - 2100)
+        if (!tahunNum) {
+            return res.status(400).json({
+                message: "Parameter tahun tidak valid. Harus berupa 4 digit angka antara 1990 sampai 2100.",
+            });
         }
 
-        const laporan = await getLaporanByTahun(tahun.trim());
+        const laporan = await getLaporanByTahun(tahunNum);
         res.json(laporan);
     } catch (error) {
         res.status(500).json({ message: error.message });
