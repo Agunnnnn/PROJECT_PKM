@@ -68,7 +68,7 @@ PROJECT_PKM/
 ├── server/                     # Backend REST API (Node.js + Express)
 │   ├── config/db.js            # Koneksi MySQL pool
 │   ├── controllers/            # Controller auth, alumni, survey
-│   ├── middleware/             # auth.js (JWT protect) & upload.js (Multer)
+│   ├── middleware/             # auth.js (JWT protect), upload.js (Multer), rateLimiter.js (Rate Limit)
 │   ├── models/                 # Model & query SQL (Admin, Alumni, Survey)
 │   ├── routes/                 # Endpoint routing (/api/auth, /api/alumni, /api/survey)
 │   ├── uploads/                # File upload (foto profil admin)
@@ -114,8 +114,9 @@ Pastikan sebelum memulai:
    DB_USER=root
    DB_PASSWORD=
    DB_NAME=Project_PKM
-   JWT_SECRET=rahasia_jwt_tracer_study
+   JWT_SECRET=ganti_dengan_string_acak_panjang_minimal_32_karakter
    ```
+   > ⚠️ **Penting:** `JWT_SECRET` **wajib diisi**. Server akan berhenti otomatis (`process.exit`) jika nilai ini kosong. Gunakan string acak yang panjang dan tidak mudah ditebak.
    *(Catatan: Jika menggunakan DBngin di macOS, default password `root` adalah kosong/blank).*
 
 ---
@@ -176,6 +177,21 @@ npm run dev        # Berjalan di http://localhost:5173
    - Skor Cosine $< 0.20$ $\rightarrow$ **Tidak Sesuai**
 4. **Fail-Safe Mechanism:**
    Jika service `ml-api` belum aktif saat alumni submit, backend tetap menyimpan survei ke database dengan nilai `relevansi_jurusan = NULL`, sehingga proses survei tidak terganggu. Admin dapat melakukan kalkulasi susulan melalui tombol *Hitung Ulang Relevansi* di dashboard.
+
+---
+
+## 🔒 Keamanan Backend
+
+| Mekanisme | Detail |
+|---|---|
+| **Rate Limit Login** | Maksimal 10 percobaan login per 15 menit per IP. Kelebihan request diblokir dengan HTTP `429 Too Many Requests`. |
+| **Rate Limit Survei** | Maksimal 5 submit survei per 10 menit per IP, mencegah spam data. |
+| **Anti Timing Attack** | Login selalu menjalankan `bcrypt.compare` (menggunakan hash dummy jika user tidak ditemukan), sehingga waktu respons seragam dan tidak bisa digunakan untuk *user enumeration*. |
+| **Validasi Tipe Input** | `username` dan `password` wajib bertipe `string`. Input `number`, `object`, atau `null` akan ditolak dengan `400 Bad Request`. |
+| **Proteksi Privilege Escalation** | Field `role` pada endpoint edit profil admin diabaikan sepenuhnya. Role dikunci menjadi `Administrator` di sisi server. |
+| **Jurusan dari Database** | Pada submit survei, `jurusan` yang digunakan untuk kalkulasi ML selalu diambil dari database (`alumni.jurusan`), bukan dari body request client. |
+| **JWT_SECRET Wajib Ada** | Server langsung berhenti (`process.exit(1)`) jika `JWT_SECRET` tidak di-set di `.env`, mencegah server berjalan dalam kondisi tidak aman. |
+| **Fail-fast ML** | Endpoint *Hitung Ulang Relevansi* mengecek status ML API terlebih dahulu (timeout 1.5 detik). Jika ML mati, langsung return tanpa loop — tidak hang. |
 
 ---
 
