@@ -2,12 +2,19 @@
 const loginAttempts = new Map();
 
 export const rateLimitLogin = (req, res, next) => {
-  const ip = req.ip || req.headers["x-forwarded-for"] || req.socket.remoteAddress || "global";
+  const ip =
+    req.ip ||
+    req.headers["x-forwarded-for"] ||
+    req.socket.remoteAddress ||
+    "global";
   const now = Date.now();
   const windowMs = 15 * 60 * 1000; // 15 menit
   const maxRequests = 10; // Maksimal 10 request login per window
 
-  const record = loginAttempts.get(ip) || { count: 0, resetTime: now + windowMs };
+  const record = loginAttempts.get(ip) || {
+    count: 0,
+    resetTime: now + windowMs,
+  };
 
   if (now > record.resetTime) {
     record.count = 1;
@@ -26,7 +33,45 @@ export const rateLimitLogin = (req, res, next) => {
     const retryAfter = Math.ceil((record.resetTime - now) / 1000);
     res.set("Retry-After", retryAfter.toString());
     return res.status(429).json({
-      message: "Terlalu banyak percobaan login. Silakan coba beberapa saat lagi.",
+      message:
+        "Terlalu banyak percobaan login. Silakan coba beberapa saat lagi.",
+    });
+  }
+
+  next();
+};
+// Rate Limiter untuk endpoint POST /survey publik (mencegah spam survei)
+const surveyRequests = new Map();
+
+export const rateLimitSurvey = (req, res, next) => {
+  const ip =
+    req.ip ||
+    req.headers["x-forwarded-for"] ||
+    req.socket.remoteAddress ||
+    "global";
+  const now = Date.now();
+  const windowMs = 10 * 60 * 1000; // 10 menit
+  const maxRequests = 5; // Maksimal 5 submit survei per 10 menit per IP
+
+  const record = surveyRequests.get(ip) || {
+    count: 0,
+    resetTime: now + windowMs,
+  };
+
+  if (now > record.resetTime) {
+    record.count = 1;
+    record.resetTime = now + windowMs;
+  } else {
+    record.count++;
+  }
+  surveyRequests.set(ip, record);
+
+  if (record.count > maxRequests) {
+    const retryAfter = Math.ceil((record.resetTime - now) / 1000);
+    res.set("Retry-After", retryAfter.toString());
+    return res.status(429).json({
+      message:
+        "Terlalu banyak pengiriman survei. Silakan coba beberapa saat lagi.",
     });
   }
 

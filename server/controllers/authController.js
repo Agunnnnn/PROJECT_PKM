@@ -16,29 +16,46 @@ import {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Hash dummy: waktu respons seragam saat user tidak ditemukan (anti timing attack)
+const DUMMY_HASH =
+  "$2b$10$abcdefghijklmnopqrstuvwxyz01234567890ABCDE/FGHIJKLMNOP";
+
 // ─── Login ────────────────────────────────────────────────────────────────────
 export const loginAdmin = async (req, res) => {
   try {
-    const { username, password } = req.body || {};
+    const rawUsername = (req.body || {}).username;
+    const rawPassword = (req.body || {}).password;
 
-    if (!username || !password) {
-      return res.status(400).json({ message: "Username dan password wajib diisi" });
+    // Validasi tipe: username dan password wajib string
+    if (
+      typeof rawUsername !== "string" ||
+      typeof rawPassword !== "string" ||
+      !rawUsername.trim() ||
+      !rawPassword
+    ) {
+      return res
+        .status(400)
+        .json({ message: "Username dan password wajib diisi" });
     }
+
+    const username = rawUsername.trim();
+    const password = rawPassword;
 
     const admin = await findAdminByUsername(username);
-    if (!admin) {
-      return res.status(400).json({ message: "Username atau password salah" });
-    }
 
-    const isMatch = await bcrypt.compare(password, admin.password);
-    if (!isMatch) {
-      return res.status(400).json({ message: "Username atau password salah" });
+    // Selalu jalankan bcrypt.compare (gunakan hash dummy jika user tidak ada)
+    // Tujuan: waktu respons seragam → cegah timing attack / user enumeration
+    const hashToCompare = admin ? admin.password : DUMMY_HASH;
+    const isMatch = await bcrypt.compare(password, hashToCompare);
+
+    if (!admin || !isMatch) {
+      return res.status(401).json({ message: "Username atau password salah" });
     }
 
     const token = jwt.sign(
       { id: admin.id, username: admin.username },
       process.env.JWT_SECRET,
-      { expiresIn: "1d" }
+      { expiresIn: "1d" },
     );
 
     res.json({ token, username: admin.username });
@@ -51,9 +68,7 @@ export const loginAdmin = async (req, res) => {
 export const ubahPasswordAdmin = async (req, res) => {
   try {
     const passwordLama =
-      req.body.passwordLama ||
-      req.body.oldPassword ||
-      req.body.currentPassword;
+      req.body.passwordLama || req.body.oldPassword || req.body.currentPassword;
     const passwordBaru = req.body.passwordBaru || req.body.newPassword;
     const konfirmasiPassword =
       req.body.konfirmasiPassword || req.body.confirmPassword;
@@ -102,7 +117,9 @@ export const ubahPasswordAdmin = async (req, res) => {
     const berhasil = await updateAdminPassword(admin.id, hashedPassword);
 
     if (!berhasil) {
-      return res.status(500).json({ message: "Gagal menyimpan password baru ke database" });
+      return res
+        .status(500)
+        .json({ message: "Gagal menyimpan password baru ke database" });
     }
 
     res.json({ message: "Password berhasil diperbarui" });
@@ -115,10 +132,12 @@ export const ubahPasswordAdmin = async (req, res) => {
 export const getProfilAdmin = async (req, res) => {
   try {
     const adminId = req.admin?.id;
-    if (!adminId) return res.status(401).json({ message: "Tidak terautentikasi" });
+    if (!adminId)
+      return res.status(401).json({ message: "Tidak terautentikasi" });
 
     const profil = await getAdminProfile(adminId);
-    if (!profil) return res.status(404).json({ message: "Profil admin tidak ditemukan" });
+    if (!profil)
+      return res.status(404).json({ message: "Profil admin tidak ditemukan" });
 
     res.json(profil);
   } catch (error) {
@@ -130,7 +149,8 @@ export const getProfilAdmin = async (req, res) => {
 export const updateProfilAdmin = async (req, res) => {
   try {
     const adminId = req.admin?.id;
-    if (!adminId) return res.status(401).json({ message: "Tidak terautentikasi" });
+    if (!adminId)
+      return res.status(401).json({ message: "Tidak terautentikasi" });
 
     const { username, nama, email, telepon, role, hapusFoto } = req.body;
 
@@ -142,14 +162,17 @@ export const updateProfilAdmin = async (req, res) => {
     // Pengguna tidak diizinkan mengubah role mereka menjadi Superuser atau role lainnya
     if (role && role.trim() !== "Administrator") {
       return res.status(400).json({
-        message: "Perubahan role tidak diizinkan. Privilege escalation ditolak.",
+        message:
+          "Perubahan role tidak diizinkan. Privilege escalation ditolak.",
       });
     }
 
     // Cek apakah username sudah dipakai admin lain
     const taken = await isUsernameTaken(username.trim(), adminId);
     if (taken) {
-      return res.status(400).json({ message: "Username sudah digunakan oleh akun lain" });
+      return res
+        .status(400)
+        .json({ message: "Username sudah digunakan oleh akun lain" });
     }
 
     const currentProfil = await getAdminProfile(adminId);
@@ -162,7 +185,11 @@ export const updateProfilAdmin = async (req, res) => {
       if (currentProfil?.foto && currentProfil.foto.startsWith("/uploads/")) {
         const oldFile = path.join(__dirname, "..", currentProfil.foto);
         if (fs.existsSync(oldFile)) {
-          try { fs.unlinkSync(oldFile); } catch (e) { /* abaikan jika gagal hapus */ }
+          try {
+            fs.unlinkSync(oldFile);
+          } catch (e) {
+            /* abaikan jika gagal hapus */
+          }
         }
       }
     } else if (hapusFoto === "true" || hapusFoto === true) {
@@ -171,7 +198,11 @@ export const updateProfilAdmin = async (req, res) => {
       if (currentProfil?.foto && currentProfil.foto.startsWith("/uploads/")) {
         const oldFile = path.join(__dirname, "..", currentProfil.foto);
         if (fs.existsSync(oldFile)) {
-          try { fs.unlinkSync(oldFile); } catch (e) { /* abaikan jika gagal hapus */ }
+          try {
+            fs.unlinkSync(oldFile);
+          } catch (e) {
+            /* abaikan jika gagal hapus */
+          }
         }
       }
     }
@@ -198,17 +229,24 @@ export const updateProfilAdmin = async (req, res) => {
 export const uploadFotoAdmin = async (req, res) => {
   try {
     const adminId = req.admin?.id;
-    if (!adminId) return res.status(401).json({ message: "Tidak terautentikasi" });
+    if (!adminId)
+      return res.status(401).json({ message: "Tidak terautentikasi" });
 
     if (!req.file) {
-      return res.status(400).json({ message: "Tidak ada file foto yang dipilih" });
+      return res
+        .status(400)
+        .json({ message: "Tidak ada file foto yang dipilih" });
     }
 
     const currentProfil = await getAdminProfile(adminId);
     if (currentProfil?.foto && currentProfil.foto.startsWith("/uploads/")) {
       const oldFile = path.join(__dirname, "..", currentProfil.foto);
       if (fs.existsSync(oldFile)) {
-        try { fs.unlinkSync(oldFile); } catch (e) { /* abaikan */ }
+        try {
+          fs.unlinkSync(oldFile);
+        } catch (e) {
+          /* abaikan */
+        }
       }
     }
 
@@ -216,7 +254,11 @@ export const uploadFotoAdmin = async (req, res) => {
     await updateAdminFoto(adminId, fotoUrl);
 
     const profilBaru = await getAdminProfile(adminId);
-    res.json({ message: "Foto profil berhasil diperbarui", foto: fotoUrl, profil: profilBaru });
+    res.json({
+      message: "Foto profil berhasil diperbarui",
+      foto: fotoUrl,
+      profil: profilBaru,
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -226,13 +268,18 @@ export const uploadFotoAdmin = async (req, res) => {
 export const hapusFotoAdmin = async (req, res) => {
   try {
     const adminId = req.admin?.id;
-    if (!adminId) return res.status(401).json({ message: "Tidak terautentikasi" });
+    if (!adminId)
+      return res.status(401).json({ message: "Tidak terautentikasi" });
 
     const currentProfil = await getAdminProfile(adminId);
     if (currentProfil?.foto && currentProfil.foto.startsWith("/uploads/")) {
       const oldFile = path.join(__dirname, "..", currentProfil.foto);
       if (fs.existsSync(oldFile)) {
-        try { fs.unlinkSync(oldFile); } catch (e) { /* abaikan */ }
+        try {
+          fs.unlinkSync(oldFile);
+        } catch (e) {
+          /* abaikan */
+        }
       }
     }
 

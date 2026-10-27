@@ -11,6 +11,14 @@ import surveyRoutes from "./routes/survey.js";
 
 dotenv.config();
 
+// ─── Validasi env wajib ───────────────────────────────────────────────────────
+if (!process.env.JWT_SECRET || process.env.JWT_SECRET.trim() === "") {
+  console.error(
+    "[FATAL] JWT_SECRET belum di-set di file .env. Server tidak akan berjalan.",
+  );
+  process.exit(1);
+}
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -25,11 +33,11 @@ app.use("/api/alumni", alumniRoutes);
 app.use("/api/survey", surveyRoutes);
 
 app.get("/", (req, res) => {
-    res.send("Tracer Study API (MySQL) berjalan 🚀");
+  res.send("Tracer Study API (MySQL) berjalan 🚀");
 });
 
 const PORT = process.env.PORT || 5000;
 
 testConnection().then(() => {
-    app.listen(PORT, () => console.log(`Server berjalan di port ${PORT}`));
+  app.listen(PORT, () => console.log(`Server berjalan di port ${PORT}`));
 });
