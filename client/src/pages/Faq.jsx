@@ -35,10 +35,11 @@ export default function Faq({ judul = "Pertanyaan umum", items = DAFTAR_FAQ }) {
   // Hanya satu pertanyaan yang terbuka dalam satu waktu (null = semua tertutup)
   const [terbuka, setTerbuka] = useState(null);
 
-  const toggle = (index) => setTerbuka((sekarang) => (sekarang === index ? null : index));
+  const toggle = (index) =>
+    setTerbuka((sekarang) => (sekarang === index ? null : index));
 
   return (
-    <main className="bg-[#eaf3fd] px-5 py-8 sm:px-8 sm:py-10 lg:px-[135px] lg:py-12">
+    <main className="bg-[#eaf3fd] px-5 py-8 sm:px-8 sm:py-10 lg:px-33.75 lg:py-12">
       {/* Judul */}
       <h1 className="mb-5 text-2xl font-extrabold leading-tight tracking-tight text-[#0f1a24] sm:text-3xl lg:mb-6 lg:text-5xl">
         {judul}
@@ -67,8 +68,9 @@ export default function Faq({ judul = "Pertanyaan umum", items = DAFTAR_FAQ }) {
                     strokeWidth="2.5"
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    className={`h-5 w-5 shrink-0 text-slate-600 transition-transform duration-300 lg:h-6 lg:w-6 ${aktif ? "rotate-180" : ""
-                      }`}
+                    className={`h-5 w-5 shrink-0 text-slate-600 transition-transform duration-300 lg:h-6 lg:w-6 ${
+                      aktif ? "rotate-180" : ""
+                    }`}
                     aria-hidden="true"
                   >
                     <path d="m6 9 6 6 6-6" />
@@ -80,8 +82,9 @@ export default function Faq({ judul = "Pertanyaan umum", items = DAFTAR_FAQ }) {
               <div
                 id={idJawaban}
                 role="region"
-                className={`grid transition-[grid-template-rows] duration-300 ease-out ${aktif ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
-                  }`}
+                className={`grid transition-[grid-template-rows] duration-300 ease-out ${
+                  aktif ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+                }`}
               >
                 <div className="overflow-hidden">
                   <p className="pb-4 pr-9 text-[0.9375rem] leading-7 text-slate-500 sm:text-base lg:pb-4 lg:pr-12 lg:text-lg lg:leading-8">
