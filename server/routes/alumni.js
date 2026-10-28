@@ -12,9 +12,9 @@ import {
     getTahunByJurusan,
     searchAlumni,
     exportAlumniExcel,
-    upload,
 } from "../controllers/alumniController.js";
 import { protect } from "../middleware/auth.js";
+import { handleUploadExcel, handleUploadSQL } from "../middleware/upload.js";
 
 const router = express.Router();
 
@@ -38,13 +38,13 @@ router.delete("/:id", protect, hapusAlumni);
 router.post(
     "/import-excel",
     protect,
-    upload.single("file"),
+    handleUploadExcel,
     importAlumniExcel,
 );
 router.post(
     "/import-sql",
     protect,
-    upload.single("file"),
+    handleUploadSQL,
     importAlumniSQL,
 );
 

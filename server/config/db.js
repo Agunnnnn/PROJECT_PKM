@@ -10,6 +10,8 @@ const pool = mysql.createPool({
     database: process.env.DB_NAME,
     waitForConnections: true,
     connectionLimit: 10,
+    enableKeepAlive: true,
+    keepAliveInitialDelay: 10000,
 });
 
 // Tes koneksi sekali saat server start

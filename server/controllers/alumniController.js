@@ -190,7 +190,7 @@ export const importAlumniExcel = async (req, res) => {
         });
     } catch (error) {
         console.error("Import Excel error:", error);
-        res.status(500).json({ message: "Gagal memproses file Excel: " + error.message });
+        res.status(400).json({ message: "Gagal memproses file Excel. Pastikan file berformat Excel (.xlsx/.xls) yang valid." });
     }
 };
 
@@ -243,7 +243,7 @@ export const importAlumniSQL = async (req, res) => {
         });
     } catch (error) {
         console.error("Import SQL error:", error);
-        res.status(500).json({ message: "Gagal memproses file SQL: " + error.message });
+        res.status(400).json({ message: "Gagal memproses file SQL. Pastikan sintaks file SQL valid." });
     }
 };
 

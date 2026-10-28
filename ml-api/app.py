@@ -150,11 +150,27 @@ def prediksi_relevansi(model_dict, nama_jurusan, teks, tipe="bekerja"):
     return label, skor, "model"
 
 
+ALLOWED_ORIGINS = {
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:5000",
+    "http://127.0.0.1:5000",
+}
+env_cors = os.environ.get("CLIENT_URL") or os.environ.get("FRONTEND_URL")
+if env_cors:
+    for o in env_cors.split(","):
+        if o.strip():
+            ALLOWED_ORIGINS.add(o.strip())
+
+
 @app.after_request
 def add_cors_headers(response):
-    response.headers['Access-Control-Allow-Origin'] = '*'
-    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
-    response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+    origin = request.headers.get("Origin")
+    if origin and origin in ALLOWED_ORIGINS:
+        response.headers['Access-Control-Allow-Origin'] = origin
+        response.headers['Vary'] = 'Origin'
+        response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
     return response
 
 
@@ -228,4 +244,5 @@ def predict_batch():
 
 
 if __name__ == "__main__":
-    app.run(port=5001, debug=True)
+    is_debug = os.environ.get("FLASK_DEBUG", "0").lower() in ("1", "true")
+    app.run(port=5001, debug=is_debug)
