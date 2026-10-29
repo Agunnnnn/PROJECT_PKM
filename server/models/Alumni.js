@@ -132,27 +132,37 @@ export const findAlumniById = async (id) => {
     return rows[0];
 };
 
-// Bulk insert untuk import; skip jika NIS sudah ada (INSERT IGNORE)
+// Bulk insert untuk import dibungkus transaksi (atomic); skip jika NIS sudah ada
 export const bulkInsertAlumni = async (rows) => {
-    if (!rows || rows.length === 0) return { inserted: 0, skipped: 0 };
-    let inserted = 0;
-    let skipped = 0;
-    for (const r of rows) {
-        const existing = await findAlumniByNis(r.nis);
-        if (existing) {
-            skipped++;
-            continue;
+    if (!rows || rows.length === 0) return { inserted: 0, skipped: 0, skippedDetail: [] };
+    const conn = await pool.getConnection();
+    try {
+        await conn.beginTransaction();
+        let inserted = 0;
+        let skipped = 0;
+        const skippedDetail = [];
+
+        for (const r of rows) {
+            const [existing] = await conn.query("SELECT id FROM alumni WHERE nis = ?", [r.nis]);
+            if (existing && existing.length > 0) {
+                skipped++;
+                skippedDetail.push(`NIS ${r.nis} (${r.nama}) sudah terdaftar`);
+                continue;
+            }
+            await conn.query(
+                "INSERT INTO alumni (nis, nama, jurusan, tahun_lulus, email, no_hp) VALUES (?, ?, ?, ?, ?, ?)",
+                [r.nis, r.nama, r.jurusan, r.tahunLulus, r.email || null, r.noHp || null],
+            );
+            inserted++;
         }
-        await createAlumni({
-            nis: r.nis,
-            nama: r.nama,
-            jurusan: r.jurusan,
-            tahunLulus: r.tahunLulus,
-            email: r.email || null,
-            noHp: r.noHp || null,
-        });
-        inserted++;
+
+        await conn.commit();
+        return { inserted, skipped, skippedDetail };
+    } catch (err) {
+        await conn.rollback();
+        throw err;
+    } finally {
+        conn.release();
     }
-    return { inserted, skipped };
 };
 

@@ -117,7 +117,8 @@ export const prediksiRelevansi = async (req, res) => {
         });
         res.json(hasil);
     } catch (error) {
-        res.status(500).json({ relevansi: null, skor: 0, tersedia: false, message: error.message });
+        console.error("Gagal prediksi relevansi:", error);
+        res.status(500).json({ relevansi: null, skor: 0, tersedia: false, message: "Terjadi kesalahan pada layanan prediksi" });
     }
 };
 
@@ -293,26 +294,26 @@ export const hitungUlangRelevansi = async (req, res) => {
 
         res.json({ diproses, berhasil, gagal });
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        next(error);
     }
 };
 
-export const getAllSurvey = async (req, res) => {
+export const getAllSurvey = async (req, res, next) => {
     try {
         const surveys = await getAllSurveyWithAlumni();
         res.json(surveys);
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        next(error);
     }
 };
 
 // Daftar tahun lulus yang ada di database (buat isi dropdown di frontend)
-export const getTahunList = async (req, res) => {
+export const getTahunList = async (req, res, next) => {
     try {
         const tahunList = await getDistinctTahunLulus();
         res.json(tahunList);
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        next(error);
     }
 };
 
@@ -414,11 +415,11 @@ export const exportSurveyPdf = async (req, res) => {
 
         doc.end();
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        next(error);
     }
 };
 // Generate & kirim file Excel berisi data survey untuk tahun lulus tertentu
-export const exportSurveyExcel = async (req, res) => {
+export const exportSurveyExcel = async (req, res, next) => {
     try {
         const { tahun } = req.params;
         const tahunNum = validasiTahun(tahun);
@@ -490,11 +491,11 @@ export const exportSurveyExcel = async (req, res) => {
         await workbook.xlsx.write(res);
         res.end();
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        next(error);
     }
 };
 
-export const getStats = async (req, res) => {
+export const getStats = async (req, res, next) => {
     try {
         const statusCount = await getStatusCount();
         const relevansiCount = await getRelevansiCount();
@@ -503,11 +504,11 @@ export const getStats = async (req, res) => {
 
         res.json({ totalAlumni, totalSurvey, statusCount, relevansiCount });
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        next(error);
     }
 };
 
-export const getLaporan = async (req, res) => {
+export const getLaporan = async (req, res, next) => {
     try {
         const { tahun } = req.params;
         const tahunNum = validasiTahun(tahun);
@@ -522,6 +523,6 @@ export const getLaporan = async (req, res) => {
         const laporan = await getLaporanByTahun(tahunNum);
         res.json(laporan);
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        next(error);
     }
 };
