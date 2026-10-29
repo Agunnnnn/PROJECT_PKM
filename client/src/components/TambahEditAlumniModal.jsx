@@ -138,7 +138,7 @@ export default function TambahEditAlumniModal({ mode, dataAwal, onTutup, onBerha
             {/* NIS */}
             <div>
               <label htmlFor="nis" className="mb-1.5 block text-sm font-semibold text-slate-700">
-                NIS / NISN <span className="text-red-500">*</span>
+                NIS <span className="text-red-500">*</span>
               </label>
               <input
                 ref={inputPertama}

@@ -27,7 +27,7 @@ Aplikasi ini menggunakan arsitektur modular yang terdiri dari 3 layanan utama:
 |---|---|---|---|
 | **Frontend** | `/client` | React 18, Vite, Tailwind CSS v4, React Router, Recharts, Lucide Icons, Axios | Antarmuka pengguna (wizard form survei alumni publik & dashboard admin interaktif) |
 | **Backend API** | `/server` | Node.js, Express.js, MySQL2, JWT (`jsonwebtoken`), Bcryptjs, Multer, ExcelJS, PDFKit | Business logic, autentikasi admin, relasi data, ekspor laporan (PDF/Excel), proxy ke ML service |
-| **ML Engine** | `/ml-api` | Python 3, Flask, Flask-CORS, Scikit-learn, Pandas, Joblib | Model klasifikasi relevansi berbasis teks (TF-IDF Vectorizer + Cosine Similarity) |
+| **ML Engine** | `/ml-api` | Python 3, Flask, Scikit-learn, Pandas, Joblib | Model klasifikasi relevansi berbasis teks (TF-IDF Vectorizer + Cosine Similarity) |
 | **Database** | File `.sql` | MySQL (`Project_PKM.sql`) | Penyimpanan data master alumni, respons survei, dan kredensial admin |
 
 ---
@@ -80,8 +80,10 @@ PROJECT_PKM/
 │   ├── model_relevansi.pkl     # Model terlatih (TF-IDF & centroid per jurusan)
 │   ├── pengecualian.json       # Kamus kecocokan manual / aturan khusus
 │   └── requirements.txt        # Dependensi Python
+├── schema.sql                 # Skema DDL MySQL bersih (kolom admin lengkap, UNIQUE, CASCADE)
+├── Project_PKM.sql             # Dump database MySQL awal (~100 data alumni)
+├── dev.sh                      # Skrip praktis untuk menjalankan ketiga layanan sekaligus
 ├── PRD-Tracer-Study.md         # Dokumen kebutuhan produk lengkap (PRD)
-├── Project_PKM.sql             # Dump database MySQL awal
 └── README.md                   # Dokumentasi teknis & panduan instalasi
 ```
 
@@ -89,24 +91,24 @@ PROJECT_PKM/
 
 ## 🗄️ Skema Database
 
-- **`alumni`**: Menyimpan master data lulusan (`id`, `nis`, `nama`, `jurusan`, `tahun_lulus`, `email`, `no_hp`).
-- **`survey`**: Menyimpan hasil pengisian kuesioner (`id`, `alumni_id`, `status_saat_ini`, `nama_perusahaan`, `bidang_kerja`, `relevansi_jurusan`, `lama_tunggu_kerja`, `nama_kampus`, `jurusan_kampus`, `saran_untuk_sekolah`).
-- **`admin`**: Kredensial akun BKK/pengelola (`id`, `username`, `password` hash bcrypt, `nama`, `foto`).
+- **`alumni`**: Menyimpan master data lulusan (`id`, `nis` [UNIQUE], `nama`, `jurusan`, `tahun_lulus`, `email`, `no_hp`, `created_at`).
+- **`survey`**: Menyimpan hasil pengisian kuesioner (`id`, `alumni_id` [FK, UNIQUE], `status_saat_ini`, `nama_perusahaan`, `bidang_kerja`, `relevansi_jurusan`, `lama_tunggu_kerja`, `nama_kampus`, `jurusan_kampus`, `saran_untuk_sekolah`, `created_at`).
+- **`admin`**: Kredensial & profil pengelola BKK/admin (`id`, `username` [UNIQUE], `password` hash bcrypt, `nama`, `email`, `telepon`, `role`, `foto`, `created_at`).
+
+> 💡 **Inisialisasi Database:** Anda dapat menggunakan `schema.sql` untuk membuat struktur tabel bersih baru, atau mengimpor `Project_PKM.sql` jika ingin menyertakan 100 data master alumni bawaan sekolah.
 
 ---
 
 ## 🚀 Panduan Menjalankan Sistem
 
-Pastikan sebelum memulai:
+Prasyarat:
 - **Node.js** (v18+) terpasang.
 - **Python** (v3.9+) terpasang.
 - **MySQL Server** aktif (bisa melalui DBngin, XAMPP, Homebrew, atau MySQL bawaan).
 
-> ⚠️ **Penting:** Sistem membutuhkan **3 terminal** berjalan bersamaan (Database -> Backend -> ML API -> Frontend).
-
 ### 1. Persiapan Database MySQL
 1. Buat database baru bernama `Project_PKM` di MySQL Anda.
-2. Import file `Project_PKM.sql` ke dalam database `Project_PKM`.
+2. Import file `schema.sql` (atau `Project_PKM.sql`) ke dalam database `Project_PKM`.
 3. Buat file `.env` di dalam folder `server/` (atau sesuaikan yang sudah ada):
    ```env
    PORT=5000
@@ -121,17 +123,27 @@ Pastikan sebelum memulai:
 
 ---
 
-### 2. Menjalankan Backend (Terminal 1)
+### Cara Praktis: Menjalankan Sekaligus (All-in-One)
+
+Di lingkungan Linux / macOS, Anda dapat menjalankan seluruh service dengan satu perintah:
 ```bash
-cd server
-npm install
-npm run migrate    
-npm run dev        # Berjalan di http://localhost:5000
+chmod +x dev.sh
+./dev.sh
 ```
 
 ---
 
-### 3. Menjalankan ML API (Terminal 2)
+### Cara Manual: Menjalankan Per Layanan
+
+**A. Backend API:**
+```bash
+cd server
+npm install
+npm run migrate    # Tambahkan kolom profil admin jika belum ada
+npm run dev        # Berjalan di http://localhost:5000
+```
+
+**B. Machine Learning API:**
 ```bash
 cd ml-api
 
@@ -145,9 +157,7 @@ python app.py
 ```
 *(Endpoint cek status: `http://localhost:5001/health`)*
 
----
-
-### 4. Menjalankan Frontend (Terminal 3)
+**C. Frontend Web App:**
 ```bash
 cd client
 npm install
@@ -171,12 +181,50 @@ npm run dev        # Berjalan di http://localhost:5173
    Model TF-IDF dilatih dengan korpus deskripsi profesi, kurikulum SMK, dan kata kunci tiap program keahlian (Akuntansi, OTKP, BDP, RPL, dll.).
 2. **Kalkulasi Kemiripan:**
    Input bebas alumni (contoh: *"Junior Frontend Developer"*, *"Staff Kasir"*, *"Admin Gudang"*) dianalisis kemiripan vektor kosinusnya terhadap deskripsi jurusan.
-3. **Penentuan Ambang Batas (Threshold):**
-   - Skor Cosine $\ge 0.40$ $\rightarrow$ **Sangat Sesuai**
-   - Skor Cosine antara $0.20 - 0.39$ $\rightarrow$ **Cukup Sesuai**
-   - Skor Cosine $< 0.20$ $\rightarrow$ **Tidak Sesuai**
-4. **Fail-Safe Mechanism:**
+3. **Penentuan Ambang Batas Aktual (Threshold):**
+   Nilai ambang batas tersimpan langsung di dalam model (`model_relevansi.pkl`) dan dikalibrasi terpisah untuk masing-masing klaster:
+   - **Klaster Bekerja (Bidang Kerja vs Jurusan SMK):**
+     - Skor Cosine $\ge 0.05$ $\rightarrow$ **Sangat Sesuai**
+     - Skor Cosine $0.01 - 0.049$ $\rightarrow$ **Cukup Sesuai**
+     - Skor Cosine $< 0.01$ $\rightarrow$ **Tidak Sesuai**
+   - **Klaster Kuliah (Jurusan Kampus vs Jurusan SMK):**
+     - Skor Cosine $\ge 0.04$ $\rightarrow$ **Sangat Sesuai**
+     - Skor Cosine $0.02 - 0.039$ $\rightarrow$ **Cukup Sesuai**
+     - Skor Cosine $< 0.02$ $\rightarrow$ **Tidak Sesuai**
+   *(Nilai fallback kode bila model serialisasi tidak menyertakan batas: batas bawah 0.05, batas atas 0.15).*
+4. **Mekanisme Pengecualian (Manual Override):**
+   Tersedia file `ml-api/pengecualian.json` untuk mendefinisikan aturan manual atau keputusan dewan guru yang secara otomatis mengalahkan hasil kalkulasi TF-IDF.
+5. **Fail-Safe Mechanism:**
    Jika service `ml-api` belum aktif saat alumni submit, backend tetap menyimpan survei ke database dengan nilai `relevansi_jurusan = NULL`, sehingga proses survei tidak terganggu. Admin dapat melakukan kalkulasi susulan melalui tombol *Hitung Ulang Relevansi* di dashboard.
+
+---
+
+## 🔄 Panduan Retraining & Pembaruan Model ML
+
+Jika ada penambahan kompetensi kejuruan baru atau penyesuaian kurikulum SMK:
+
+1. **Pembaruan Instan via `pengecualian.json` (Tanpa Training Ulang):**
+   - Buka file `ml-api/pengecualian.json`.
+   - Tambahkan pemetaan kata kunci:
+     ```json
+     {
+       "tipe": "bekerja",
+       "jurusan": "Rekayasa Perangkat Lunak",
+       "teks": "Mobile Flutter Developer",
+       "label": "Sangat Sesuai"
+     }
+     ```
+   - Restart service `ml-api` (`python app.py`). Aturan ini otomatis diprioritaskan di atas prediksi vektor TF-IDF.
+
+2. **Pelatihan Ulang Model (Retraining Penuh):**
+   - Siapkan korpus teks deskripsi kompetensi dan kata kunci profesi/studi lanjut untuk setiap program keahlian (Akuntansi, OTKP, BDP, RPL, Perhotelan).
+   - Lakukan vektorisasi korpus menggunakan `TfidfVectorizer` (Scikit-learn).
+   - Hitung representasi centroid kemiripan kosinus untuk kedua model (`bekerja` dan `kuliah`).
+   - Sertakan parameter `batas_bawah` dan `batas_atas` ke dalam dictionary model.
+   - Serialisasikan model menggunakan `joblib.dump(models_dict, 'model_relevansi.pkl')`.
+   - Tempatkan file `model_relevansi.pkl` baru ke dalam folder `ml-api/`.
+   - Restart service `ml-api` (`python app.py`).
+   - Masuk ke portal admin dan gunakan tombol **Hitung Ulang Relevansi** untuk memperbarui data survei yang tersimpan.
 
 ---
 

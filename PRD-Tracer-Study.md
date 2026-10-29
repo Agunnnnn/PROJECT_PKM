@@ -32,18 +32,18 @@ SMK Puspita Bangsa membutuhkan sistem untuk melacak status alumni setelah lulus 
 ### 4.1 Dalam Lingkup (In-Scope)
 
 - Form survei alumni dengan pemilihan data otomatis (Jurusan → Tahun Lulus → Nama → NIS)
-- Sistem autentikasi admin
-- Dashboard visualisasi statistik (status alumni, relevansi pekerjaan)
+- Sistem autentikasi admin dan pengelolaan profil
+- Dashboard visualisasi statistik (status alumni, relevansi pekerjaan/kuliah)
 - Tabel data survei dengan filter berdasarkan tahun lulus
 - Export laporan ke format PDF dan Excel
-- Model Machine Learning untuk prediksi otomatis relevansi jurusan terhadap bidang pekerjaan
+- Model Machine Learning untuk prediksi otomatis relevansi jurusan terhadap bidang pekerjaan maupun jurusan kuliah lanjutan
 - Import data alumni dari sekolah ke dalam sistem
 
 ### 4.2 Luar Lingkup (Out of Scope)
 
-- Prediksi relevansi untuk jalur wirausaha (saat ini hanya mencakup status "Bekerja"; perluasan ke "Kuliah" bersifat opsional/pengembangan lanjutan)
+- Prediksi relevansi untuk jalur wirausaha (karakteristik jenis dan bidang usaha terlalu dinamis di luar model klasifikasi teks kurikulum)
 - Notifikasi otomatis via email/WhatsApp ke alumni (potensi pengembangan lanjutan)
-- Aplikasi mobile native (sistem berbasis web, bukan aplikasi Android/iOS)
+- Aplikasi mobile native (sistem berbasis web responsif, bukan aplikasi Android/iOS native)
 - Manajemen multi-sekolah (sistem dirancang untuk satu institusi: SMK Puspita Bangsa)
 
 ## 5. Daftar Fitur Utama
@@ -53,16 +53,16 @@ SMK Puspita Bangsa membutuhkan sistem untuk melacak status alumni setelah lulus 
 | 1   | Form Survey Otomatis             | Alumni memilih jurusan, tahun lulus, dan nama; NIS otomatis terisi tanpa perlu diketik manual                         |
 | 2   | Input Status Alumni              | Pencatatan status terkini: Bekerja, Kuliah, Wirausaha, atau Belum Bekerja, beserta detail pendukungnya                |
 | 3   | Login Admin                      | Autentikasi aman menggunakan JWT untuk akses khusus admin/BKK                                                         |
-| 4   | Dashboard Statistik              | Visualisasi grafik status alumni dan tingkat relevansi pekerjaan secara real-time                                     |
+| 4   | Dashboard Statistik              | Visualisasi grafik status alumni dan tingkat relevansi pekerjaan/kuliah secara real-time                              |
 | 5   | Tabel Data Survey                | Daftar seluruh respons survey dengan fitur pencarian dan filter per tahun lulus                                       |
-| 6   | Prediksi Relevansi Otomatis (ML) | Penilaian otomatis kesesuaian bidang pekerjaan dengan jurusan alumni menggunakan Machine Learning, tanpa input manual |
+| 6   | Prediksi Relevansi Otomatis (ML) | Penilaian otomatis kesesuaian bidang kerja atau jurusan kuliah dengan jurusan SMK menggunakan Machine Learning        |
 | 7   | Export Laporan PDF               | Unduh laporan data survey dalam format PDF, difilter per tahun lulus                                                  |
 | 8   | Export Laporan Excel             | Unduh laporan data survey dalam format Excel, difilter per tahun lulus                                                |
-| 9   | Import Data Alumni               | Mengimpor data alumni dari sekolah (NIS, nama, jurusan, tahun lulus) ke dalam sistem                                  |
+| 9   | Import Data Alumni               | Mengimpor data alumni dari sekolah (NIS, nama, jurusan, tahun lulus) ke dalam sistem via Excel                        |
 
 ## 6. Kebutuhan Fungsional (Functional Requirements)
 
-### 5.1 Modul Alumni (Publik)
+### 6.1 Modul Alumni (Publik)
 
 | ID   | Kebutuhan                                                                                               |
 | ---- | ------------------------------------------------------------------------------------------------------- |
@@ -73,7 +73,7 @@ SMK Puspita Bangsa membutuhkan sistem untuk melacak status alumni setelah lulus 
 | F-05 | Alumni dapat memberikan saran untuk sekolah                                                             |
 | F-06 | Sistem menyimpan data survei ke database setelah validasi                                               |
 
-### 5.2 Modul Admin
+### 6.2 Modul Admin
 
 | ID   | Kebutuhan                                                                                      |
 | ---- | ---------------------------------------------------------------------------------------------- |
@@ -84,13 +84,13 @@ SMK Puspita Bangsa membutuhkan sistem untuk melacak status alumni setelah lulus 
 | F-11 | Admin dapat mengunduh laporan dalam format PDF                                                 |
 | F-12 | Admin dapat mengunduh laporan dalam format Excel                                               |
 
-### 5.3 Modul Machine Learning
+### 6.3 Modul Machine Learning
 
 | ID   | Kebutuhan                                                                                                                                                |
 | ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| F-13 | Sistem secara otomatis menghitung skor kesesuaian antara jurusan SMK alumni dengan bidang pekerjaan yang diisi, menggunakan TF-IDF dan Cosine Similarity |
+| F-13 | Sistem secara otomatis menghitung skor kesesuaian jurusan SMK dengan bidang kerja (Bekerja) atau jurusan kuliah (Kuliah) menggunakan TF-IDF dan Cosine Similarity |
 | F-14 | Hasil prediksi dikategorikan menjadi tiga label: Sangat Sesuai, Cukup Sesuai, Tidak Sesuai                                                               |
-| F-15 | Prediksi relevansi hanya dijalankan ketika status alumni adalah "Bekerja"                                                                                |
+| F-15 | Prediksi relevansi dijalankan ketika status alumni adalah "Bekerja" atau "Kuliah"                                                                        |
 | F-16 | Apabila layanan ML API tidak dapat diakses, data survei tetap tersimpan tanpa nilai relevansi (fail-safe)                                                |
 
 ## 7. Kebutuhan Non-Fungsional (Non-Functional Requirements)
@@ -134,23 +134,23 @@ SMK Puspita Bangsa membutuhkan sistem untuk melacak status alumni setelah lulus 
 
 ## 10. Model Data (Entitas Utama)
 
-**Alumni**: `id, nis, nama, jurusan, tahun_lulus, email, no_hp`
+**Alumni**: `id, nis (UNIQUE), nama, jurusan, tahun_lulus, email, no_hp, created_at`
 
-**Survey**: `id, alumni_id (FK), status_saat_ini, nama_perusahaan, bidang_kerja, relevansi_jurusan, lama_tunggu_kerja, nama_kampus, jurusan_kampus, saran_untuk_sekolah, created_at`
+**Survey**: `id, alumni_id (FK, UNIQUE), status_saat_ini, nama_perusahaan, bidang_kerja, relevansi_jurusan, lama_tunggu_kerja, nama_kampus, jurusan_kampus, saran_untuk_sekolah, created_at`
 
-**Admin**: `id, username, password (hashed)`
+**Admin**: `id, username (UNIQUE), password (hashed), nama, email, telepon, role, foto, created_at`
 
 ## 11. Spesifikasi Model Machine Learning
 
 | Aspek                | Keterangan                                                                                            |
 | -------------------- | ----------------------------------------------------------------------------------------------------- |
 | **Algoritma**        | TF-IDF (Term Frequency-Inverse Document Frequency) + Cosine Similarity                                |
-| **Input**            | Teks deskripsi jurusan (referensi) dan teks bidang pekerjaan alumni                                   |
-| **Output**           | Skor kemiripan (0–1) dan label kategori relevansi                                                     |
-| **Threshold**        | Skor < 0.05 → Tidak Sesuai; 0.05–0.15 → Cukup Sesuai; ≥ 0.15 → Sangat Sesuai                          |
+| **Input**            | Teks referensi kurikulum/kata kunci kejuruan SMK dan teks input alumni (bidang kerja / jurusan kampus) |
+| **Output**           | Skor kemiripan kosinus (0–1) dan label kategori relevansi (Sangat Sesuai, Cukup Sesuai, Tidak Sesuai) |
+| **Threshold Aktual** | **Bekerja:** Skor < 0.01 $\rightarrow$ Tidak Sesuai; 0.01–0.049 $\rightarrow$ Cukup Sesuai; $\ge$ 0.05 $\rightarrow$ Sangat Sesuai<br>**Kuliah:** Skor < 0.02 $\rightarrow$ Tidak Sesuai; 0.02–0.039 $\rightarrow$ Cukup Sesuai; $\ge$ 0.04 $\rightarrow$ Sangat Sesuai<br>*(Fallback kode bila model tanpa batas bawaan: < 0.05 / 0.05–0.15 / $\ge$ 0.15)* |
 | **Evaluasi**         | Accuracy Score, Classification Report (Precision, Recall, F1-Score), Confusion Matrix                 |
 | **Akurasi saat ini** | 80.70% (pada dataset uji internal)                                                                    |
-| **Deployment**       | Model disimpan menggunakan `joblib`, disajikan melalui REST API (Flask) pada endpoint `POST /predict` |
+| **Deployment**       | Model serialisasi `model_relevansi.pkl` (joblib), disajikan melalui REST API (Flask) pada endpoint `POST /predict` dan `POST /predict-batch` |
 
 ## 12. Metrik Keberhasilan (Success Metrics)
 
@@ -177,7 +177,6 @@ SMK Puspita Bangsa membutuhkan sistem untuk melacak status alumni setelah lulus 
 
 ## 15. Rencana Pengembangan Lanjutan (Future Enhancements)
 
-- Perluasan prediksi relevansi untuk jalur melanjutkan kuliah (jurusan SMK vs jurusan kuliah)
 - Notifikasi otomatis ke alumni melalui email/WhatsApp API
-- Desain antarmuka responsif untuk perangkat mobile
-- Fitur manajemen akun admin (ubah password, multi-admin)
+- Desain antarmuka responsif penuh dan Progressive Web App (PWA) untuk perangkat mobile
+- Integrasi analitik tren kompetensi industri secara berkala
