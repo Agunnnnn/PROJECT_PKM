@@ -4,6 +4,7 @@ import {
   tambahAlumni,
   editAlumni,
   hapusAlumni,
+  getAlumniById,
   importAlumniExcel,
   getAllAlumni,
   getJurusanList,
@@ -29,6 +30,7 @@ router.get("/", protect, getAllAlumni);
 router.get("/export-excel", protect, exportAlumniExcel);
 
 // CRUD manual
+router.get("/:id", protect, getAlumniById);
 router.post("/tambah", protect, tambahAlumni);
 router.put("/:id", protect, editAlumni);
 router.delete("/:id", protect, hapusAlumni);

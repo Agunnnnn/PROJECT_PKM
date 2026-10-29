@@ -117,7 +117,8 @@ export const prediksiRelevansi = async (req, res) => {
         });
         res.json(hasil);
     } catch (error) {
-        res.status(500).json({ relevansi: null, skor: 0, tersedia: false, message: error.message });
+        console.error("Gagal prediksi relevansi:", error);
+        res.status(500).json({ relevansi: null, skor: 0, tersedia: false, message: "Terjadi kesalahan pada layanan prediksi" });
     }
 };
 
@@ -206,7 +207,7 @@ export const createSurvey = async (req, res) => {
 };
 
 // Endpoint admin (JWT): hitung ulang relevansi untuk data lama yang masih NULL
-export const hitungUlangRelevansi = async (req, res) => {
+export const hitungUlangRelevansi = async (req, res, next) => {
     try {
         const surveys = await getSurveysTanpaRelevansi();
         const diproses = surveys.length;
@@ -293,31 +294,31 @@ export const hitungUlangRelevansi = async (req, res) => {
 
         res.json({ diproses, berhasil, gagal });
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        next(error);
     }
 };
 
-export const getAllSurvey = async (req, res) => {
+export const getAllSurvey = async (req, res, next) => {
     try {
         const surveys = await getAllSurveyWithAlumni();
         res.json(surveys);
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        next(error);
     }
 };
 
 // Daftar tahun lulus yang ada di database (buat isi dropdown di frontend)
-export const getTahunList = async (req, res) => {
+export const getTahunList = async (req, res, next) => {
     try {
         const tahunList = await getDistinctTahunLulus();
         res.json(tahunList);
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        next(error);
     }
 };
 
 // Generate & kirim file PDF berisi data survey untuk tahun lulus tertentu
-export const exportSurveyPdf = async (req, res) => {
+export const exportSurveyPdf = async (req, res, next) => {
     try {
         const { tahun } = req.params;
         const tahunNum = validasiTahun(tahun);
@@ -414,11 +415,11 @@ export const exportSurveyPdf = async (req, res) => {
 
         doc.end();
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        next(error);
     }
 };
 // Generate & kirim file Excel berisi data survey untuk tahun lulus tertentu
-export const exportSurveyExcel = async (req, res) => {
+export const exportSurveyExcel = async (req, res, next) => {
     try {
         const { tahun } = req.params;
         const tahunNum = validasiTahun(tahun);
@@ -490,24 +491,50 @@ export const exportSurveyExcel = async (req, res) => {
         await workbook.xlsx.write(res);
         res.end();
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        next(error);
     }
 };
 
-export const getStats = async (req, res) => {
+export const getStats = async (req, res, next) => {
     try {
         const statusCount = await getStatusCount();
         const relevansiCount = await getRelevansiCount();
         const totalAlumni = await countAlumni();
         const totalSurvey = await countSurvey();
 
-        res.json({ totalAlumni, totalSurvey, statusCount, relevansiCount });
+        // Hitung relevan, tidakRelevan, dan sudahBekerjaKuliah di sisi backend
+        let sudahBekerjaKuliah = 0;
+        statusCount.forEach((item) => {
+            if (item.status === "Bekerja" || item.status === "Kuliah") {
+                sudahBekerjaKuliah += Number(item.jumlah || 0);
+            }
+        });
+
+        let relevan = 0;
+        let tidakRelevan = 0;
+        relevansiCount.forEach((item) => {
+            if (item.relevansi === "Sangat Sesuai" || item.relevansi === "Cukup Sesuai") {
+                relevan += Number(item.jumlah || 0);
+            } else if (item.relevansi === "Tidak Sesuai") {
+                tidakRelevan += Number(item.jumlah || 0);
+            }
+        });
+
+        res.json({
+            totalAlumni,
+            totalSurvey,
+            statusCount,
+            relevansiCount,
+            relevan,
+            tidakRelevan,
+            sudahBekerjaKuliah,
+        });
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        next(error);
     }
 };
 
-export const getLaporan = async (req, res) => {
+export const getLaporan = async (req, res, next) => {
     try {
         const { tahun } = req.params;
         const tahunNum = validasiTahun(tahun);
@@ -522,6 +549,6 @@ export const getLaporan = async (req, res) => {
         const laporan = await getLaporanByTahun(tahunNum);
         res.json(laporan);
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        next(error);
     }
 };

@@ -10,6 +10,7 @@ import {
   getAdminProfile,
   updateAdminProfile,
   updateAdminFoto,
+  updateAdminLastLogin,
   isUsernameTaken,
 } from "../models/Admin.js";
 
@@ -21,7 +22,7 @@ const DUMMY_HASH =
   "$2b$10$abcdefghijklmnopqrstuvwxyz01234567890ABCDE/FGHIJKLMNOP";
 
 // ─── Login ────────────────────────────────────────────────────────────────────
-export const loginAdmin = async (req, res) => {
+export const loginAdmin = async (req, res, next) => {
   try {
     const rawUsername = (req.body || {}).username;
     const rawPassword = (req.body || {}).password;
@@ -58,14 +59,17 @@ export const loginAdmin = async (req, res) => {
       { expiresIn: "1d" },
     );
 
+    // Update waktu login terakhir admin
+    await updateAdminLastLogin(admin.id);
+
     res.json({ token, username: admin.username });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
 // ─── Ubah Password ────────────────────────────────────────────────────────────
-export const ubahPasswordAdmin = async (req, res) => {
+export const ubahPasswordAdmin = async (req, res, next) => {
   try {
     const passwordLama =
       req.body.passwordLama || req.body.oldPassword || req.body.currentPassword;
@@ -124,12 +128,12 @@ export const ubahPasswordAdmin = async (req, res) => {
 
     res.json({ message: "Password berhasil diperbarui" });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
 // ─── Get Profil ───────────────────────────────────────────────────────────────
-export const getProfilAdmin = async (req, res) => {
+export const getProfilAdmin = async (req, res, next) => {
   try {
     const adminId = req.admin?.id;
     if (!adminId)
@@ -141,12 +145,12 @@ export const getProfilAdmin = async (req, res) => {
 
     res.json(profil);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
 // ─── Update Profil ────────────────────────────────────────────────────────────
-export const updateProfilAdmin = async (req, res) => {
+export const updateProfilAdmin = async (req, res, next) => {
   try {
     const adminId = req.admin?.id;
     if (!adminId)
@@ -221,12 +225,12 @@ export const updateProfilAdmin = async (req, res) => {
 
     res.json({ message: "Profil berhasil diperbarui", profil: profilBaru });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
 // ─── Khusus Upload Foto Saja ───────────────────────────────────────────────────
-export const uploadFotoAdmin = async (req, res) => {
+export const uploadFotoAdmin = async (req, res, next) => {
   try {
     const adminId = req.admin?.id;
     if (!adminId)
@@ -260,12 +264,12 @@ export const uploadFotoAdmin = async (req, res) => {
       profil: profilBaru,
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
 // ─── Hapus Foto Profil ─────────────────────────────────────────────────────────
-export const hapusFotoAdmin = async (req, res) => {
+export const hapusFotoAdmin = async (req, res, next) => {
   try {
     const adminId = req.admin?.id;
     if (!adminId)
@@ -287,6 +291,6 @@ export const hapusFotoAdmin = async (req, res) => {
     const profilBaru = await getAdminProfile(adminId);
     res.json({ message: "Foto profil berhasil dihapus", profil: profilBaru });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };

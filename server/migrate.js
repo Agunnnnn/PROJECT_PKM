@@ -20,12 +20,13 @@ const migrate = async () => {
   try {
     console.log("Menjalankan migrasi database...\n");
 
-    // Tambah kolom-kolom profil admin jika belum ada
-    await addColumnIfMissing("nama",    "VARCHAR(100) DEFAULT NULL");
-    await addColumnIfMissing("email",   "VARCHAR(100) DEFAULT NULL");
-    await addColumnIfMissing("telepon", "VARCHAR(20) DEFAULT NULL");
-    await addColumnIfMissing("role",    "VARCHAR(50) DEFAULT 'Administrator'");
-    await addColumnIfMissing("foto",    "VARCHAR(255) DEFAULT NULL");
+    await addColumnIfMissing("nama",       "VARCHAR(100) DEFAULT NULL");
+    await addColumnIfMissing("email",      "VARCHAR(100) DEFAULT NULL");
+    await addColumnIfMissing("telepon",    "VARCHAR(20) DEFAULT NULL");
+    await addColumnIfMissing("role",       "VARCHAR(50) DEFAULT 'Administrator'");
+    await addColumnIfMissing("foto",       "VARCHAR(255) DEFAULT NULL");
+    await addColumnIfMissing("status",     "VARCHAR(20) DEFAULT 'Aktif'");
+    await addColumnIfMissing("last_login", "DATETIME DEFAULT NULL");
 
     console.log("\n✅ Migrasi selesai!");
   } catch (err) {

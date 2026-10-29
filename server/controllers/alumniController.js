@@ -5,12 +5,15 @@ import {
   createAlumni,
   updateAlumni,
   deleteAlumni,
+  bulkInsertAlumni,
   getAllAlumni as getAllAlumniModel,
   getDistinctJurusan,
   getDistinctTahun,
   getDistinctTahunByJurusan,
   getAlumniByJurusanTahun,
   getAlumniWithSurvey,
+  getAlumniWithSurveyPaginated,
+  getAlumniDetailById,
 } from "../models/Alumni.js";
 import { upsertSurveyByAlumniId } from "../models/Survey.js";
 
@@ -21,7 +24,7 @@ const norm = (str) =>
     .replace(/[\s_\-/]/g, "");
 
 // ─── Temukan atau Buat Alumni (dipakai form survei publik) ───────────────────
-export const findOrCreateAlumni = async (req, res) => {
+export const findOrCreateAlumni = async (req, res, next) => {
   try {
     const { nis, nama, jurusan, tahunLulus, email, noHp } = req.body;
 
@@ -39,12 +42,12 @@ export const findOrCreateAlumni = async (req, res) => {
 
     res.status(200).json(alumni);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
 // ─── Tambah Alumni Manual (admin) ────────────────────────────────────────────
-export const tambahAlumni = async (req, res) => {
+export const tambahAlumni = async (req, res, next) => {
   try {
     const { nis, nama, jurusan, tahunLulus, email, noHp } = req.body;
 
@@ -72,12 +75,12 @@ export const tambahAlumni = async (req, res) => {
 
     res.status(201).json({ message: "Alumni berhasil ditambahkan.", alumni });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
 // ─── Edit Alumni (admin) ──────────────────────────────────────────────────────
-export const editAlumni = async (req, res) => {
+export const editAlumni = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { nis, nama, jurusan, tahunLulus, email, noHp } = req.body;
@@ -111,13 +114,13 @@ export const editAlumni = async (req, res) => {
 
     res.json({ message: "Data alumni berhasil diperbarui." });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
 // ─── Hapus Alumni (admin) ─────────────────────────────────────────────────────
 // Penghapusan survey + alumni dibungkus transaksi di layer model (atomic)
-export const hapusAlumni = async (req, res) => {
+export const hapusAlumni = async (req, res, next) => {
   try {
     const { id } = req.params;
     const alumni = await findAlumniById(Number(id));
@@ -127,14 +130,14 @@ export const hapusAlumni = async (req, res) => {
     await deleteAlumni(Number(id));
     res.json({ message: `Data alumni "${alumni.nama}" berhasil dihapus.` });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
 // ─── Import Excel ─────────────────────────────────────────────────────────────
 // Kolom yang dikenali (fleksibel): nis/nisn, nama, jurusan, tahun/tahunlulus, email, nohp/hp/telepon
 // Fitur: validasi per baris dengan laporan error detail (baris ke-berapa & alasannya)
-export const importAlumniExcel = async (req, res) => {
+export const importAlumniExcel = async (req, res, next) => {
   try {
     if (!req.file)
       return res.status(400).json({ message: "File Excel tidak ditemukan." });
@@ -221,28 +224,8 @@ export const importAlumniExcel = async (req, res) => {
       });
     }
 
-    // ─── Tahap 2: Insert baris valid, skip duplikat NIS ───────────────────
-    let inserted = 0;
-    let skipped = 0;
-    const skippedDetail = [];
-
-    for (const r of validRows) {
-      const existing = await findAlumniByNis(r.nis);
-      if (existing) {
-        skipped++;
-        skippedDetail.push(`NIS ${r.nis} (${r.nama}) sudah terdaftar`);
-        continue;
-      }
-      await createAlumni({
-        nis: r.nis,
-        nama: r.nama,
-        jurusan: r.jurusan,
-        tahunLulus: r.tahunLulus,
-        email: r.email || null,
-        noHp: r.noHp || null,
-      });
-      inserted++;
-    }
+    // ─── Tahap 2: Insert baris valid dibungkus transaksi, skip duplikat NIS ──
+    const { inserted, skipped, skippedDetail } = await bulkInsertAlumni(validRows);
 
     res.json({
       message: `Import selesai. ${inserted} ditambahkan, ${skipped} dilewati (NIS sudah ada), ${errorRows.length} baris error.`,
@@ -254,67 +237,110 @@ export const importAlumniExcel = async (req, res) => {
     });
   } catch (error) {
     console.error("Import Excel error:", error);
-    res.status(400).json({
-      message:
-        "Gagal memproses file Excel. Pastikan file berformat Excel (.xlsx/.xls) yang valid.",
-    });
+    if (error.message?.includes("Excel") || error.message?.includes("workbook") || error.message?.includes("zip")) {
+      return res.status(400).json({
+        message:
+          "Gagal memproses file Excel. Pastikan file berformat Excel (.xlsx/.xls) yang valid.",
+      });
+    }
+    next(error);
   }
 };
 
-// ─── GET semua alumni ─────────────────────────────────────────────────────────
-export const getAllAlumni = async (req, res) => {
+// ─── GET Detail Alumni by ID (admin) ─────────────────────────────────────────
+export const getAlumniById = async (req, res, next) => {
   try {
-    const alumni = await getAllAlumniModel();
+    const { id } = req.params;
+    const alumniId = Number(id);
+    if (isNaN(alumniId)) {
+      return res.status(400).json({ message: "ID alumni harus berupa angka" });
+    }
+
+    const alumni = await getAlumniDetailById(alumniId);
+    if (!alumni) {
+      return res.status(404).json({ message: "Alumni tidak ditemukan." });
+    }
+
     res.json(alumni);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
+  }
+};
+
+// ─── GET semua alumni (dengan filter & pagination) ───────────────────────────
+export const getAllAlumni = async (req, res, next) => {
+  try {
+    const { page, limit, status, jurusan, tahunLulus, search, cari } = req.query;
+    const searchParam = search || cari;
+
+    if (page !== undefined || limit !== undefined) {
+      const result = await getAlumniWithSurveyPaginated({
+        jurusan,
+        tahunLulus,
+        status,
+        search: searchParam,
+        page,
+        limit,
+      });
+      return res.json(result);
+    }
+
+    const alumni = await getAlumniWithSurvey({
+      jurusan,
+      tahunLulus,
+      status,
+      search: searchParam,
+    });
+    res.json(alumni);
+  } catch (error) {
+    next(error);
   }
 };
 
 // ─── Daftar jurusan unik (dropdown) ──────────────────────────────────────────
-export const getJurusanList = async (req, res) => {
+export const getJurusanList = async (req, res, next) => {
   try {
     const jurusanList = await getDistinctJurusan();
     res.json(jurusanList);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
 // ─── Daftar semua tahun lulus unik dari DB (dropdown form tambah/edit) ────────
-export const getTahunList = async (req, res) => {
+export const getTahunList = async (req, res, next) => {
   try {
     const tahunList = await getDistinctTahun();
     res.json(tahunList);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
 // ─── Daftar tahun lulus per jurusan (dropdown survei publik) ─────────────────
-export const getTahunByJurusan = async (req, res) => {
+export const getTahunByJurusan = async (req, res, next) => {
   try {
     const { jurusan } = req.query;
     const tahunList = await getDistinctTahunByJurusan(jurusan);
     res.json(tahunList);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
 // ─── Cari alumni (dropdown survei publik) ────────────────────────────────────
-export const searchAlumni = async (req, res) => {
+export const searchAlumni = async (req, res, next) => {
   try {
     const { jurusan, tahunLulus } = req.query;
     const alumni = await getAlumniByJurusanTahun(jurusan, tahunLulus);
     res.json(alumni);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
 // ─── Ekspor Data Alumni ke Excel ──────────────────────────────────────────────
-export const exportAlumniExcel = async (req, res) => {
+export const exportAlumniExcel = async (req, res, next) => {
   try {
     const { jurusan, tahun, cari } = req.query;
     const alumniList = await getAlumniWithSurvey({
@@ -527,9 +553,6 @@ export const exportAlumniExcel = async (req, res) => {
     await workbook.xlsx.write(res);
     res.end();
   } catch (error) {
-    console.error("Gagal export alumni Excel:", error);
-    res.status(500).json({
-      message: "Gagal mengekspor data alumni ke Excel: " + error.message,
-    });
+    next(error);
   }
 };
