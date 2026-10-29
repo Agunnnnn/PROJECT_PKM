@@ -12,6 +12,8 @@ import {
   getDistinctTahunByJurusan,
   getAlumniByJurusanTahun,
   getAlumniWithSurvey,
+  getAlumniWithSurveyPaginated,
+  getAlumniDetailById,
 } from "../models/Alumni.js";
 import { upsertSurveyByAlumniId } from "../models/Survey.js";
 
@@ -245,10 +247,50 @@ export const importAlumniExcel = async (req, res) => {
   }
 };
 
-// ─── GET semua alumni ─────────────────────────────────────────────────────────
+// ─── GET Detail Alumni by ID (admin) ─────────────────────────────────────────
+export const getAlumniById = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const alumniId = Number(id);
+    if (isNaN(alumniId)) {
+      return res.status(400).json({ message: "ID alumni harus berupa angka" });
+    }
+
+    const alumni = await getAlumniDetailById(alumniId);
+    if (!alumni) {
+      return res.status(404).json({ message: "Alumni tidak ditemukan." });
+    }
+
+    res.json(alumni);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ─── GET semua alumni (dengan filter & pagination) ───────────────────────────
 export const getAllAlumni = async (req, res, next) => {
   try {
-    const alumni = await getAllAlumniModel();
+    const { page, limit, status, jurusan, tahunLulus, search, cari } = req.query;
+    const searchParam = search || cari;
+
+    if (page !== undefined || limit !== undefined) {
+      const result = await getAlumniWithSurveyPaginated({
+        jurusan,
+        tahunLulus,
+        status,
+        search: searchParam,
+        page,
+        limit,
+      });
+      return res.json(result);
+    }
+
+    const alumni = await getAlumniWithSurvey({
+      jurusan,
+      tahunLulus,
+      status,
+      search: searchParam,
+    });
     res.json(alumni);
   } catch (error) {
     next(error);
