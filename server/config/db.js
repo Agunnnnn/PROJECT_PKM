@@ -17,8 +17,6 @@ const pool = mysql.createPool({
 // Tes koneksi sekali saat server start
 export const testConnection = async () => {
     try {
-        const conn = await pool.getConnection();
-        console.log("MySQL Connect");
         conn.release();
     } catch (error) {
         console.error("Gagal konek ke MySQL:", error.message);
