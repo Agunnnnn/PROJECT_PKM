@@ -62,3 +62,70 @@ export const handleUploadFoto = (req, res, next) => {
     next();
   });
 };
+
+// ─── Multer Memori: Import Excel ──────────────────────────────────────────────
+const excelStorage = multer.memoryStorage();
+const excelFileFilter = (req, file, cb) => {
+  const ext = path.extname(file.originalname).toLowerCase();
+  const allowed = [".xlsx", ".xls"];
+  if (allowed.includes(ext)) {
+    cb(null, true);
+  } else {
+    cb(new Error("Hanya file Excel (.xlsx, .xls) yang diperbolehkan"), false);
+  }
+};
+
+export const uploadExcel = multer({
+  storage: excelStorage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+  fileFilter: excelFileFilter,
+});
+
+export const handleUploadExcel = (req, res, next) => {
+  const uploadSingle = uploadExcel.single("file");
+
+  uploadSingle(req, res, (err) => {
+    if (err instanceof multer.MulterError) {
+      if (err.code === "LIMIT_FILE_SIZE") {
+        return res.status(400).json({ message: "Ukuran file terlalu besar, maksimal 10MB." });
+      }
+      return res.status(400).json({ message: `Gagal mengunggah file: ${err.message}` });
+    } else if (err) {
+      return res.status(400).json({ message: err.message });
+    }
+    next();
+  });
+};
+
+// ─── Multer Memori: Import SQL ────────────────────────────────────────────────
+const sqlStorage = multer.memoryStorage();
+const sqlFileFilter = (req, file, cb) => {
+  const ext = path.extname(file.originalname).toLowerCase();
+  if (ext === ".sql") {
+    cb(null, true);
+  } else {
+    cb(new Error("Hanya file SQL (.sql) yang diperbolehkan"), false);
+  }
+};
+
+export const uploadSQL = multer({
+  storage: sqlStorage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+  fileFilter: sqlFileFilter,
+});
+
+export const handleUploadSQL = (req, res, next) => {
+  const uploadSingle = uploadSQL.single("file");
+
+  uploadSingle(req, res, (err) => {
+    if (err instanceof multer.MulterError) {
+      if (err.code === "LIMIT_FILE_SIZE") {
+        return res.status(400).json({ message: "Ukuran file terlalu besar, maksimal 10MB." });
+      }
+      return res.status(400).json({ message: `Gagal mengunggah file: ${err.message}` });
+    } else if (err) {
+      return res.status(400).json({ message: err.message });
+    }
+    next();
+  });
+};

@@ -19,3 +19,7 @@ server/.env
 # Jangan commit environment & globals postman yang berisi token
 postman/*environment*
 postman/*globals*
+
+# Python
+__pycache__/
+*.py[cod]
