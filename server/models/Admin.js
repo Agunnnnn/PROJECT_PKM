@@ -28,10 +28,23 @@ export const updateAdminPassword = async (id, hashedPassword) => {
 
 export const getAdminProfile = async (id) => {
   const [rows] = await pool.query(
-    "SELECT id, username, nama, email, telepon, role, foto FROM admin WHERE id = ?",
+    "SELECT id, username, nama, email, telepon, role, foto, status, last_login FROM admin WHERE id = ?",
     [id]
   );
   return rows[0];
+};
+
+export const updateAdminLastLogin = async (id) => {
+  try {
+    const [result] = await pool.query(
+      "UPDATE admin SET last_login = NOW() WHERE id = ?",
+      [id]
+    );
+    return result.affectedRows > 0;
+  } catch (err) {
+    console.warn("[WARN] Gagal update last_login (jalankan npm run migrate):", err.message);
+    return false;
+  }
 };
 
 export const updateAdminProfile = async (id, { username, nama, email, telepon, role, foto }) => {

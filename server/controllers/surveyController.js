@@ -502,7 +502,33 @@ export const getStats = async (req, res, next) => {
         const totalAlumni = await countAlumni();
         const totalSurvey = await countSurvey();
 
-        res.json({ totalAlumni, totalSurvey, statusCount, relevansiCount });
+        // Hitung relevan, tidakRelevan, dan sudahBekerjaKuliah di sisi backend
+        let sudahBekerjaKuliah = 0;
+        statusCount.forEach((item) => {
+            if (item.status === "Bekerja" || item.status === "Kuliah") {
+                sudahBekerjaKuliah += Number(item.jumlah || 0);
+            }
+        });
+
+        let relevan = 0;
+        let tidakRelevan = 0;
+        relevansiCount.forEach((item) => {
+            if (item.relevansi === "Sangat Sesuai" || item.relevansi === "Cukup Sesuai") {
+                relevan += Number(item.jumlah || 0);
+            } else if (item.relevansi === "Tidak Sesuai") {
+                tidakRelevan += Number(item.jumlah || 0);
+            }
+        });
+
+        res.json({
+            totalAlumni,
+            totalSurvey,
+            statusCount,
+            relevansiCount,
+            relevan,
+            tidakRelevan,
+            sudahBekerjaKuliah,
+        });
     } catch (error) {
         next(error);
     }

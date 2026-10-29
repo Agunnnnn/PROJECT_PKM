@@ -10,6 +10,7 @@ import {
   getAdminProfile,
   updateAdminProfile,
   updateAdminFoto,
+  updateAdminLastLogin,
   isUsernameTaken,
 } from "../models/Admin.js";
 
@@ -57,6 +58,9 @@ export const loginAdmin = async (req, res) => {
       process.env.JWT_SECRET,
       { expiresIn: "1d" },
     );
+
+    // Update waktu login terakhir admin
+    await updateAdminLastLogin(admin.id);
 
     res.json({ token, username: admin.username });
   } catch (error) {
