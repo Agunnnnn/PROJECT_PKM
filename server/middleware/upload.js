@@ -28,13 +28,20 @@ const storage = multer.diskStorage({
 // Filter tipe file gambar
 const fileFilter = (req, file, cb) => {
   const allowedTypes = /jpeg|jpg|png|webp|gif/;
-  const extValid = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+  const extValid = allowedTypes.test(
+    path.extname(file.originalname).toLowerCase(),
+  );
   const mimeValid = allowedTypes.test(file.mimetype);
 
   if (extValid && mimeValid) {
     cb(null, true);
   } else {
-    cb(new Error("Hanya file gambar (JPG, JPEG, PNG, WEBP, GIF) yang diperbolehkan"), false);
+    cb(
+      new Error(
+        "Hanya file gambar (JPG, JPEG, PNG, WEBP, GIF) yang diperbolehkan",
+      ),
+      false,
+    );
   }
 };
 
@@ -53,9 +60,13 @@ export const handleUploadFoto = (req, res, next) => {
   uploadSingle(req, res, (err) => {
     if (err instanceof multer.MulterError) {
       if (err.code === "LIMIT_FILE_SIZE") {
-        return res.status(400).json({ message: "Ukuran file terlalu besar, maksimal 5MB." });
+        return res
+          .status(400)
+          .json({ message: "Ukuran file terlalu besar, maksimal 5MB." });
       }
-      return res.status(400).json({ message: `Gagal mengunggah foto: ${err.message}` });
+      return res
+        .status(400)
+        .json({ message: `Gagal mengunggah foto: ${err.message}` });
     } else if (err) {
       return res.status(400).json({ message: err.message });
     }
@@ -87,42 +98,13 @@ export const handleUploadExcel = (req, res, next) => {
   uploadSingle(req, res, (err) => {
     if (err instanceof multer.MulterError) {
       if (err.code === "LIMIT_FILE_SIZE") {
-        return res.status(400).json({ message: "Ukuran file terlalu besar, maksimal 10MB." });
+        return res
+          .status(400)
+          .json({ message: "Ukuran file terlalu besar, maksimal 10MB." });
       }
-      return res.status(400).json({ message: `Gagal mengunggah file: ${err.message}` });
-    } else if (err) {
-      return res.status(400).json({ message: err.message });
-    }
-    next();
-  });
-};
-
-// ─── Multer Memori: Import SQL ────────────────────────────────────────────────
-const sqlStorage = multer.memoryStorage();
-const sqlFileFilter = (req, file, cb) => {
-  const ext = path.extname(file.originalname).toLowerCase();
-  if (ext === ".sql") {
-    cb(null, true);
-  } else {
-    cb(new Error("Hanya file SQL (.sql) yang diperbolehkan"), false);
-  }
-};
-
-export const uploadSQL = multer({
-  storage: sqlStorage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
-  fileFilter: sqlFileFilter,
-});
-
-export const handleUploadSQL = (req, res, next) => {
-  const uploadSingle = uploadSQL.single("file");
-
-  uploadSingle(req, res, (err) => {
-    if (err instanceof multer.MulterError) {
-      if (err.code === "LIMIT_FILE_SIZE") {
-        return res.status(400).json({ message: "Ukuran file terlalu besar, maksimal 10MB." });
-      }
-      return res.status(400).json({ message: `Gagal mengunggah file: ${err.message}` });
+      return res
+        .status(400)
+        .json({ message: `Gagal mengunggah file: ${err.message}` });
     } else if (err) {
       return res.status(400).json({ message: err.message });
     }
