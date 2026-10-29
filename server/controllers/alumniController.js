@@ -7,7 +7,6 @@ import {
     createAlumni,
     updateAlumni,
     deleteAlumni,
-    bulkInsertAlumni,
     getAllAlumni as getAllAlumniModel,
     getDistinctJurusan,
     getDistinctTahun,
@@ -16,18 +15,18 @@ import {
     getAlumniWithSurvey,
 } from "../models/Alumni.js";
 import { upsertSurveyByAlumniId } from "../models/Survey.js";
-import pool from "../config/db.js";
 
 // ─── Multer (upload ke memori, tidak simpan ke disk) ─────────────────────────
+// Import SQL dihapus: hanya terima .xlsx dan .xls untuk keamanan
 const storage = multer.memoryStorage();
 export const upload = multer({
     storage,
     limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB
     fileFilter: (req, file, cb) => {
         const ext = path.extname(file.originalname).toLowerCase();
-        const allowed = [".xlsx", ".xls", ".sql"];
+        const allowed = [".xlsx", ".xls"];
         if (allowed.includes(ext)) return cb(null, true);
-        cb(new Error(`Tipe file tidak didukung: ${ext}`));
+        cb(new Error(`Tipe file tidak didukung: ${ext}. Hanya .xlsx dan .xls yang diterima.`));
     },
 });
 
@@ -117,6 +116,7 @@ export const editAlumni = async (req, res) => {
 };
 
 // ─── Hapus Alumni (admin) ─────────────────────────────────────────────────────
+// Penghapusan survey + alumni dibungkus transaksi di layer model (atomic)
 export const hapusAlumni = async (req, res) => {
     try {
         const { id } = req.params;
@@ -132,6 +132,7 @@ export const hapusAlumni = async (req, res) => {
 
 // ─── Import Excel ─────────────────────────────────────────────────────────────
 // Kolom yang dikenali (fleksibel): nis/nisn, nama, jurusan, tahun/tahunlulus, email, nohp/hp/telepon
+// Fitur: validasi per baris dengan laporan error detail (baris ke-berapa & alasannya)
 export const importAlumniExcel = async (req, res) => {
     try {
         if (!req.file) return res.status(400).json({ message: "File Excel tidak ditemukan." });
@@ -143,9 +144,8 @@ export const importAlumniExcel = async (req, res) => {
         if (!sheet) return res.status(400).json({ message: "Sheet pertama tidak ditemukan di file Excel." });
 
         // Ambil baris header (baris 1)
-        const headerRow = sheet.getRow(1).values; // index mulai dari 1
-        // headerRow[0] = undefined (ExcelJS), [1] = kolom A, dst.
-        const colMap = {}; // key: nama kolom ternormalisasi → value: index
+        const headerRow = sheet.getRow(1).values; // index mulai dari 1 (ExcelJS)
+        const colMap = {}; // nama kolom ternormalisasi → index
         headerRow.forEach((val, idx) => {
             if (val != null) colMap[norm(val)] = idx;
         });
@@ -157,93 +157,92 @@ export const importAlumniExcel = async (req, res) => {
             return cell.value != null ? String(cell.value).trim() : null;
         };
 
-        const rows = [];
+        // ─── Tahap 1: Baca & validasi semua baris ─────────────────────────────
+        const validRows = [];  // baris lolos validasi → siap insert
+        const errorRows = [];  // baris bermasalah → dilaporkan ke admin
+
         sheet.eachRow((row, rowNum) => {
             if (rowNum === 1) return; // skip header
-            const nis = getCel(row, "nis") || getCel(row, "nisn");
-            const nama = getCel(row, "nama") || getCel(row, "namalengkap");
-            const jurusan = getCel(row, "jurusan") || getCel(row, "programkeahlian");
-            const tahunLulus =
-                getCel(row, "tahunlulus") ||
-                getCel(row, "tahun") ||
-                getCel(row, "angkatan");
-            const email = getCel(row, "email");
-            const noHp =
-                getCel(row, "nohp") ||
-                getCel(row, "hp") ||
-                getCel(row, "telepon") ||
-                getCel(row, "nomorhp");
 
-            if (!nis || !nama) return; // skip baris kosong/tidak lengkap
-            rows.push({ nis, nama, jurusan: jurusan || "", tahunLulus: tahunLulus || "", email, noHp });
+            const nis      = getCel(row, "nis")  || getCel(row, "nisn");
+            const nama     = getCel(row, "nama") || getCel(row, "namalengkap");
+            const jurusan  = getCel(row, "jurusan") || getCel(row, "programkeahlian");
+            const tahunRaw = getCel(row, "tahunlulus") || getCel(row, "tahun") || getCel(row, "angkatan");
+            const email    = getCel(row, "email");
+            const noHp     = getCel(row, "nohp") || getCel(row, "hp") || getCel(row, "telepon") || getCel(row, "nomorhp");
+
+            // Kumpulkan semua error untuk baris ini sebelum putuskan skip/valid
+            const rowErrors = [];
+
+            if (!nis)
+                rowErrors.push("NIS kosong");
+            else if (String(nis).length > 50)
+                rowErrors.push("NIS terlalu panjang (maks 50 karakter)");
+
+            if (!nama)
+                rowErrors.push("Nama kosong");
+            else if (String(nama).length > 100)
+                rowErrors.push("Nama terlalu panjang (maks 100 karakter)");
+
+            if (!jurusan)
+                rowErrors.push("Jurusan kosong");
+            else if (String(jurusan).length > 100)
+                rowErrors.push("Jurusan terlalu panjang (maks 100 karakter)");
+
+            const tahunNum = tahunRaw ? parseInt(String(tahunRaw).trim(), 10) : NaN;
+            if (!tahunRaw || isNaN(tahunNum))
+                rowErrors.push("Tahun lulus kosong atau bukan angka");
+            else if (tahunNum < 1990 || tahunNum > 2100)
+                rowErrors.push(`Tahun lulus tidak valid: ${tahunRaw} (harus antara 1990–2100)`);
+
+            if (rowErrors.length > 0) {
+                errorRows.push({ baris: rowNum, error: rowErrors.join("; ") });
+                return;
+            }
+
+            validRows.push({ nis, nama, jurusan, tahunLulus: tahunNum, email, noHp });
         });
 
-        if (rows.length === 0) {
-            return res.status(400).json({ message: "Tidak ada data valid di file Excel. Pastikan baris 1 adalah header (NIS/NISN, Nama, Jurusan, Tahun Lulus)." });
+        if (validRows.length === 0 && errorRows.length === 0) {
+            return res.status(400).json({
+                message: "Tidak ada data di file Excel. Pastikan baris 1 adalah header (NIS, Nama, Jurusan, Tahun Lulus).",
+            });
         }
 
-        const { inserted, skipped } = await bulkInsertAlumni(rows);
+        // ─── Tahap 2: Insert baris valid, skip duplikat NIS ───────────────────
+        let inserted = 0;
+        let skipped  = 0;
+        const skippedDetail = [];
+
+        for (const r of validRows) {
+            const existing = await findAlumniByNis(r.nis);
+            if (existing) {
+                skipped++;
+                skippedDetail.push(`NIS ${r.nis} (${r.nama}) sudah terdaftar`);
+                continue;
+            }
+            await createAlumni({
+                nis:        r.nis,
+                nama:       r.nama,
+                jurusan:    r.jurusan,
+                tahunLulus: r.tahunLulus,
+                email:      r.email || null,
+                noHp:       r.noHp  || null,
+            });
+            inserted++;
+        }
+
         res.json({
-            message: `Import selesai. ${inserted} data baru ditambahkan, ${skipped} data dilewati (NIS sudah ada).`,
+            message:    `Import selesai. ${inserted} ditambahkan, ${skipped} dilewati (NIS sudah ada), ${errorRows.length} baris error.`,
             inserted,
             skipped,
+            errorCount: errorRows.length,
+            errors:         errorRows,      // { baris: rowNum, error: "..." }
+            skippedDetail,
         });
     } catch (error) {
         console.error("Import Excel error:", error);
         res.status(500).json({ message: "Gagal memproses file Excel: " + error.message });
-    }
-};
-
-// ─── Import SQL ───────────────────────────────────────────────────────────────
-// Hanya izinkan INSERT INTO alumni / survey; tolak DROP, TRUNCATE, dll.
-const ALLOWED_SQL_PATTERN = /^\s*INSERT\s+INTO\s+(alumni|survey)\s+/i;
-const DANGEROUS_SQL_PATTERN = /\b(DROP|TRUNCATE|DELETE|UPDATE|ALTER|CREATE|REPLACE|EXEC|CALL)\b/i;
-
-export const importAlumniSQL = async (req, res) => {
-    try {
-        if (!req.file) return res.status(400).json({ message: "File SQL tidak ditemukan." });
-
-        const content = req.file.buffer.toString("utf-8");
-        // Pisah per statement
-        const statements = content
-            .split(/;\s*\n|;\s*$/)
-            .map((s) => s.trim())
-            .filter(Boolean);
-
-        let inserted = 0;
-        let skipped = 0;
-        const errors = [];
-
-        for (const stmt of statements) {
-            // Keamanan: hanya izinkan INSERT INTO alumni atau survey
-            if (!ALLOWED_SQL_PATTERN.test(stmt)) {
-                errors.push(`Statement dilewati (bukan INSERT alumni/survey): ${stmt.slice(0, 60)}...`);
-                skipped++;
-                continue;
-            }
-            if (DANGEROUS_SQL_PATTERN.test(stmt)) {
-                errors.push(`Statement berbahaya diblokir: ${stmt.slice(0, 60)}...`);
-                skipped++;
-                continue;
-            }
-            try {
-                await pool.query(stmt);
-                inserted++;
-            } catch (err) {
-                errors.push(`Error pada statement: ${stmt.slice(0, 60)}... → ${err.message}`);
-                skipped++;
-            }
-        }
-
-        res.json({
-            message: `Import SQL selesai. ${inserted} statement berhasil, ${skipped} dilewati/gagal.`,
-            inserted,
-            skipped,
-            errors: errors.slice(0, 10), // kirim maks 10 error saja
-        });
-    } catch (error) {
-        console.error("Import SQL error:", error);
-        res.status(500).json({ message: "Gagal memproses file SQL: " + error.message });
     }
 };
 
@@ -387,9 +386,9 @@ export const exportAlumniExcel = async (req, res) => {
             const row = sheet.getRow(rowNumber);
             row.height = 22;
             let aktivitas = "-";
-            if (item.status_saat_ini === "Bekerja") { countBekerja++; aktivitas = item.nama_perusahaan ? `${item.nama_perusahaan}${item.bidang_kerja ? ` (${item.bidang_kerja})` : ""}` : (item.bidang_kerja || "Bekerja"); }
-            else if (item.status_saat_ini === "Kuliah") { countKuliah++; aktivitas = [item.nama_kampus, item.jurusan_kampus].filter(Boolean).join(" - ") || "Kuliah"; }
-            else if (item.status_saat_ini === "Wirausaha") { countWirausaha++; aktivitas = item.bidang_kerja || item.nama_perusahaan || "Wirausaha"; }
+            if (item.status_saat_ini === "Bekerja")       { countBekerja++;  aktivitas = item.nama_perusahaan ? `${item.nama_perusahaan}${item.bidang_kerja ? ` (${item.bidang_kerja})` : ""}` : (item.bidang_kerja || "Bekerja"); }
+            else if (item.status_saat_ini === "Kuliah")   { countKuliah++;   aktivitas = [item.nama_kampus, item.jurusan_kampus].filter(Boolean).join(" - ") || "Kuliah"; }
+            else if (item.status_saat_ini === "Wirausaha"){ countWirausaha++; aktivitas = item.bidang_kerja || item.nama_perusahaan || "Wirausaha"; }
             else if (item.status_saat_ini === "Belum Bekerja") { countBelum++; aktivitas = "Belum Bekerja"; }
             else { countBelumSurvey++; }
 
@@ -428,8 +427,8 @@ export const exportAlumniExcel = async (req, res) => {
         sheet.getRow(summaryRowIndex).height = 24;
 
         const cleanJurusan = jurusan && jurusan !== "Semua" ? `-${jurusan.toLowerCase().replace(/[^a-z0-9]/g, "-")}` : "";
-        const cleanTahun = tahun && tahun !== "Semua" ? `-${tahun}` : "";
-        const filename = `data-alumni${cleanJurusan}${cleanTahun}-${now.toISOString().slice(0, 10)}.xlsx`;
+        const cleanTahun   = tahun && tahun !== "Semua" ? `-${tahun}` : "";
+        const filename     = `data-alumni${cleanJurusan}${cleanTahun}-${now.toISOString().slice(0, 10)}.xlsx`;
         res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
         res.setHeader("Content-Disposition", `attachment; filename=${filename}`);
         await workbook.xlsx.write(res);

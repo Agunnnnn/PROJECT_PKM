@@ -111,10 +111,20 @@ export const updateAlumni = async (id, { nis, nama, jurusan, tahunLulus, email, 
 };
 
 export const deleteAlumni = async (id) => {
-    // Survey akan terhapus otomatis jika ada ON DELETE CASCADE, atau hapus manual dulu
-    await pool.query("DELETE FROM survey WHERE alumni_id = ?", [id]);
-    const [result] = await pool.query("DELETE FROM alumni WHERE id = ?", [id]);
-    return result.affectedRows > 0;
+    // Bungkus dalam transaksi: survey dan alumni harus terhapus bersamaan (atomic)
+    const conn = await pool.getConnection();
+    try {
+        await conn.beginTransaction();
+        await conn.query("DELETE FROM survey WHERE alumni_id = ?", [id]);
+        const [result] = await conn.query("DELETE FROM alumni WHERE id = ?", [id]);
+        await conn.commit();
+        return result.affectedRows > 0;
+    } catch (err) {
+        await conn.rollback();
+        throw err;
+    } finally {
+        conn.release();
+    }
 };
 
 export const findAlumniById = async (id) => {
