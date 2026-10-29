@@ -22,7 +22,7 @@ const DUMMY_HASH =
   "$2b$10$abcdefghijklmnopqrstuvwxyz01234567890ABCDE/FGHIJKLMNOP";
 
 // ─── Login ────────────────────────────────────────────────────────────────────
-export const loginAdmin = async (req, res) => {
+export const loginAdmin = async (req, res, next) => {
   try {
     const rawUsername = (req.body || {}).username;
     const rawPassword = (req.body || {}).password;
@@ -69,7 +69,7 @@ export const loginAdmin = async (req, res) => {
 };
 
 // ─── Ubah Password ────────────────────────────────────────────────────────────
-export const ubahPasswordAdmin = async (req, res) => {
+export const ubahPasswordAdmin = async (req, res, next) => {
   try {
     const passwordLama =
       req.body.passwordLama || req.body.oldPassword || req.body.currentPassword;
@@ -133,7 +133,7 @@ export const ubahPasswordAdmin = async (req, res) => {
 };
 
 // ─── Get Profil ───────────────────────────────────────────────────────────────
-export const getProfilAdmin = async (req, res) => {
+export const getProfilAdmin = async (req, res, next) => {
   try {
     const adminId = req.admin?.id;
     if (!adminId)
@@ -150,7 +150,7 @@ export const getProfilAdmin = async (req, res) => {
 };
 
 // ─── Update Profil ────────────────────────────────────────────────────────────
-export const updateProfilAdmin = async (req, res) => {
+export const updateProfilAdmin = async (req, res, next) => {
   try {
     const adminId = req.admin?.id;
     if (!adminId)
@@ -230,7 +230,7 @@ export const updateProfilAdmin = async (req, res) => {
 };
 
 // ─── Khusus Upload Foto Saja ───────────────────────────────────────────────────
-export const uploadFotoAdmin = async (req, res) => {
+export const uploadFotoAdmin = async (req, res, next) => {
   try {
     const adminId = req.admin?.id;
     if (!adminId)
@@ -269,7 +269,7 @@ export const uploadFotoAdmin = async (req, res) => {
 };
 
 // ─── Hapus Foto Profil ─────────────────────────────────────────────────────────
-export const hapusFotoAdmin = async (req, res) => {
+export const hapusFotoAdmin = async (req, res, next) => {
   try {
     const adminId = req.admin?.id;
     if (!adminId)

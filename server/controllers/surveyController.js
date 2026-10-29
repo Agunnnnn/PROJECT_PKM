@@ -207,7 +207,7 @@ export const createSurvey = async (req, res) => {
 };
 
 // Endpoint admin (JWT): hitung ulang relevansi untuk data lama yang masih NULL
-export const hitungUlangRelevansi = async (req, res) => {
+export const hitungUlangRelevansi = async (req, res, next) => {
     try {
         const surveys = await getSurveysTanpaRelevansi();
         const diproses = surveys.length;
@@ -318,7 +318,7 @@ export const getTahunList = async (req, res, next) => {
 };
 
 // Generate & kirim file PDF berisi data survey untuk tahun lulus tertentu
-export const exportSurveyPdf = async (req, res) => {
+export const exportSurveyPdf = async (req, res, next) => {
     try {
         const { tahun } = req.params;
         const tahunNum = validasiTahun(tahun);
