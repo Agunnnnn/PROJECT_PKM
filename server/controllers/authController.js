@@ -60,7 +60,7 @@ export const loginAdmin = async (req, res) => {
 
     res.json({ token, username: admin.username });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
@@ -124,7 +124,7 @@ export const ubahPasswordAdmin = async (req, res) => {
 
     res.json({ message: "Password berhasil diperbarui" });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
@@ -141,7 +141,7 @@ export const getProfilAdmin = async (req, res) => {
 
     res.json(profil);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
@@ -221,7 +221,7 @@ export const updateProfilAdmin = async (req, res) => {
 
     res.json({ message: "Profil berhasil diperbarui", profil: profilBaru });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
@@ -260,7 +260,7 @@ export const uploadFotoAdmin = async (req, res) => {
       profil: profilBaru,
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
@@ -287,6 +287,6 @@ export const hapusFotoAdmin = async (req, res) => {
     const profilBaru = await getAdminProfile(adminId);
     res.json({ message: "Foto profil berhasil dihapus", profil: profilBaru });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
