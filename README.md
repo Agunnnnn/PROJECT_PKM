@@ -228,7 +228,7 @@ Jika ada penambahan kompetensi kejuruan baru atau penyesuaian kurikulum SMK:
 
 ---
 
-## 🔒 Keamanan Backend
+## 🔒 Keamanan Backend & Keandalan Sistem
 
 | Mekanisme | Detail |
 |---|---|
@@ -238,8 +238,85 @@ Jika ada penambahan kompetensi kejuruan baru atau penyesuaian kurikulum SMK:
 | **Validasi Tipe Input** | `username` dan `password` wajib bertipe `string`. Input `number`, `object`, atau `null` akan ditolak dengan `400 Bad Request`. |
 | **Proteksi Privilege Escalation** | Field `role` pada endpoint edit profil admin diabaikan sepenuhnya. Role dikunci menjadi `Administrator` di sisi server. |
 | **Jurusan dari Database** | Pada submit survei, `jurusan` yang digunakan untuk kalkulasi ML selalu diambil dari database (`alumni.jurusan`), bukan dari body request client. |
+| **Anti Duplicate Survey (UPSERT)** | Submit survei ganda dengan NIS yang sama tidak membuat baris baru melainkan memperbarui (update) data survei lama secara atomik. |
+| **Transaksi Database Atomik** | Operasi penting (seperti hapus alumni beserta surveinya, dan import massal alumni) dibungkus transaksi `BEGIN ... COMMIT/ROLLBACK` untuk menjamin konsistensi data. |
+| **Hardening HTTP (Helmet & CORS)** | Header `X-Powered-By` dinonaktifkan, proteksi `helmet` aktif, dan pembatasan origin CORS hanya ke domain frontend terdaftar. |
+| **Proteksi File Upload** | Validasi memori multer: foto profil dibatasi maks 5MB format gambar, dan import data alumni dibatasi maks 10MB hanya format `.xlsx` dan `.xls`. |
+| **Graceful Shutdown & Keep-Alive** | Menangani sinyal `SIGINT` dan `SIGTERM` untuk menutup pool koneksi MySQL secara bersih sebelum proses server berhenti. |
 | **JWT_SECRET Wajib Ada** | Server langsung berhenti (`process.exit(1)`) jika `JWT_SECRET` tidak di-set di `.env`, mencegah server berjalan dalam kondisi tidak aman. |
 | **Fail-fast ML** | Endpoint *Hitung Ulang Relevansi* mengecek status ML API terlebih dahulu (timeout 1.5 detik). Jika ML mati, langsung return tanpa loop — tidak hang. |
+
+---
+
+## 📋 Referensi Endpoint API
+
+### 1. Autentikasi & Profil Admin (`/api/auth`)
+- `POST /api/auth/login` — Login admin & penerbitan token JWT *(Rate-limited)*
+- `PUT /api/auth/ubah-password` — Ganti password akun admin *(Protected)*
+- `GET /api/auth/profil` — Ambil data profil admin aktif *(Protected)*
+- `PUT /api/auth/profil` — Perbarui username, nama, email, telepon, atau foto profil *(Protected)*
+- `DELETE /api/auth/profil/foto` — Hapus foto profil admin *(Protected)*
+
+### 2. Master Data Alumni (`/api/alumni`)
+- `GET /api/alumni/jurusan-list` — Daftar seluruh jurusan terdaftar *(Publik)*
+- `GET /api/alumni/tahun-list` — Daftar tahun kelulusan unik *(Publik)*
+- `GET /api/alumni/tahun-by-jurusan?jurusan=` — Daftar tahun lulus per jurusan *(Publik)*
+- `GET /api/alumni/search?jurusan=&tahunLulus=` — Daftar nama & NIS alumni untuk form *(Publik)*
+- `GET /api/alumni?page=1&limit=10&jurusan=&tahunLulus=&status=&search=` — Tabel alumni berhalaman *(Protected)*
+- `GET /api/alumni/:id` — Detail spesifik data alumni beserta riwayat surveinya *(Protected)*
+- `POST /api/alumni/tambah` — Tambah master data alumni baru manual *(Protected, 409 jika NIS ada)*
+- `PUT /api/alumni/:id` — Edit data master alumni *(Protected)*
+- `DELETE /api/alumni/:id` — Hapus data alumni beserta surveinya secara atomik *(Protected)*
+- `POST /api/alumni/import-excel` — Import massal file Excel alumni dengan validasi per baris *(Protected)*
+- `GET /api/alumni/export-excel` — Unduh daftar seluruh alumni ke format Excel *(Protected)*
+
+### 3. Kuesioner & Laporan Survei (`/api/survey`)
+- `POST /api/survey` — Submit kuesioner pelacakan alumni publik *(Upsert, kalkulasi ML otomatis)*
+- `POST /api/survey/prediksi-relevansi` — Simulasi prediksi kesesuaian realtime *(Publik, Rate-limited)*
+- `POST /api/survey/hitung-ulang-relevansi` — Kalkulasi massal ulang data survei dengan ML *(Protected)*
+- `GET /api/survey` — Ambil seluruh daftar data respon survei *(Protected)*
+- `GET /api/survey/stats` — Statistik agregasi dashboard (rasio status & relevansi) *(Protected)*
+- `GET /api/survey/laporan/:tahun` — Data rekapitulasi pelaporan tracer study per tahun *(Protected)*
+- `GET /api/survey/export/:tahun` — Unduh laporan resmi berformat PDF siap cetak *(Protected)*
+- `GET /api/survey/export-excel/:tahun` — Unduh laporan resmi berformat Excel per tahun *(Protected)*
+
+### 4. Machine Learning Service (`:5001`)
+- `GET /health` — Health check & status model aktif
+- `POST /predict` — Prediksi relevansi teks tunggal `{"jurusan": "...", "bidangKerja": "..."}`
+- `POST /predict-batch` — Prediksi relevansi teks massal
+
+---
+
+## 📊 Format Template Import Excel Alumni
+
+File Excel yang diunggah ke `/api/alumni/import-excel` wajib memiliki header di baris ke-1:
+
+| Kolom Header | Wajib | Keterangan | Contoh |
+|---|---|---|---|
+| `NIS` atau `NISN` | Ya | Nomor Induk Siswa unik (maks 50 karakter) | `2024642717` |
+| `Nama` atau `Nama Lengkap` | Ya | Nama lengkap alumni (maks 100 karakter) | `Oki Puspita Pratama` |
+| `Jurusan` | Ya | Program keahlian asal SMK | `Rekayasa Perangkat Lunak` |
+| `Tahun Lulus` | Ya | 4 digit tahun (1990 - 2100) | `2023` |
+| `Email` | Tidak | Alamat email aktif | `oki@example.com` |
+| `No HP` | Tidak | Nomor telepon/WhatsApp aktif | `081234567890` |
+
+---
+
+## 🎬 Panduan Skenario Demo (Presentasi PKM ke Sekolah)
+
+1. **Alur 1: Pengisian Survei oleh Alumni (Halaman Utama `http://localhost:5173`):**
+   - Alumni memilih **Jurusan** $\rightarrow$ **Tahun Lulus** $\rightarrow$ **Nama** (dropdown cascade otomatis).
+   - Kolom **NIS** otomatis terkunci dan terisi berdasarkan data sekolah.
+   - Pilih status:
+     - Jika **Bekerja**: masukkan contoh profesi (misal: *"Frontend Web Developer"* untuk jurusan RPL).
+     - Jika **Kuliah**: masukkan nama kampus & jurusan kuliah (misal: *"Teknik Informatika"*).
+   - Klik Kirim. Tunjukkan bahwa hasil penilaian relevansi jurusan dihitung otomatis oleh AI/ML tanpa alumni perlu menebak sendiri.
+   
+2. **Alur 2: Pengelolaan oleh BKK Sekolah (Portal Admin `http://localhost:5173/login`):**
+   - Login menggunakan akun BKK: `admin` / `admin123`.
+   - **Dashboard:** Perlihatkan grafik keterserapan alumni yang bekerja, kuliah, berwirausaha, dan persentase relevansi kurikulum sekolah.
+   - **Data Alumni:** Tunjukkan kemudahan filter per jurusan/tahun, pencarian nama, serta fitur import massal Excel sekolah.
+   - **Ekspor Laporan:** Unduh laporan PDF dan Excel per tahun lulus yang sudah terformat rapi untuk lampiran akreditasi sekolah.
 
 ---
 
@@ -253,3 +330,6 @@ Jika ada penambahan kompetensi kejuruan baru atau penyesuaian kurikulum SMK:
   Pastikan `python app.py` di folder `ml-api` berstatus running di port 5001.
 - **Error CORS di Browser:**
   Pastikan backend berjalan di port 5000 sebelum membuka frontend di port 5173.
+- **Database Belum Terisi Data:**
+  Jalankan `npm run migrate` di folder `server/` dan import `Project_PKM.sql` jika ingin menggunakan data bawaan awal 100 alumni SMK Puspita Bangsa.
+
