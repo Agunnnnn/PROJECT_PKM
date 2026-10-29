@@ -137,7 +137,7 @@ export const hapusAlumni = async (req, res, next) => {
 // ─── Import Excel ─────────────────────────────────────────────────────────────
 // Kolom yang dikenali (fleksibel): nis/nisn, nama, jurusan, tahun/tahunlulus, email, nohp/hp/telepon
 // Fitur: validasi per baris dengan laporan error detail (baris ke-berapa & alasannya)
-export const importAlumniExcel = async (req, res) => {
+export const importAlumniExcel = async (req, res, next) => {
   try {
     if (!req.file)
       return res.status(400).json({ message: "File Excel tidak ditemukan." });
@@ -340,7 +340,7 @@ export const searchAlumni = async (req, res, next) => {
 };
 
 // ─── Ekspor Data Alumni ke Excel ──────────────────────────────────────────────
-export const exportAlumniExcel = async (req, res) => {
+export const exportAlumniExcel = async (req, res, next) => {
   try {
     const { jurusan, tahun, cari } = req.query;
     const alumniList = await getAlumniWithSurvey({

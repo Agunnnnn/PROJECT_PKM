@@ -4,8 +4,6 @@
 # Editor local-history/timestamped copies (e.g. "package.json 13-02-09-477.json")
 * [0-9][0-9]-[0-9][0-9]-[0-9][0-9]-[0-9][0-9][0-9].*
 
-Project_PKM.sql
-
 backup_pre_qa.sql
 .qa_tmp/
 
