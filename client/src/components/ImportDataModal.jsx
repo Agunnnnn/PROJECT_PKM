@@ -2,12 +2,14 @@ import React, { useEffect, useRef, useState } from "react";
 import api from "../api/axios";
 
 export default function ImportDataModal({ onTutup, onBerhasil }) {
-  const [file, setFile]         = useState(null);
-  const [drag, setDrag]         = useState(false);
-  const [loading, setLoading]   = useState(false);
-  const [error, setError]       = useState("");
-  const [hasil, setHasil]       = useState(null);
-  const inputRef                = useRef(null);
+  const [file, setFile]               = useState(null);
+  const [drag, setDrag]               = useState(false);
+  const [loading, setLoading]         = useState(false);
+  const [error, setError]             = useState("");
+  const [hasil, setHasil]             = useState(null);
+  const [tahunLulus, setTahunLulus]   = useState(new Date().getFullYear());
+  const [filterKelas, setFilterKelas] = useState("XII");
+  const inputRef                      = useRef(null);
 
   /* tutup dengan Escape */
   useEffect(() => {
@@ -50,6 +52,8 @@ export default function ImportDataModal({ onTutup, onBerhasil }) {
 
     const formData = new FormData();
     formData.append("file", file);
+    formData.append("tahunLulus", tahunLulus);
+    formData.append("filterKelas", filterKelas);
 
     try {
       setLoading(true);
@@ -95,12 +99,12 @@ export default function ImportDataModal({ onTutup, onBerhasil }) {
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
       onClick={(e) => { if (e.target === e.currentTarget) onTutup(); }}
     >
-      <div className="w-full max-w-lg rounded-2xl bg-white shadow-2xl">
+      <div className="w-full max-w-xl rounded-2xl bg-white shadow-2xl">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-100 px-7 py-5">
           <div className="flex items-center gap-2">
             <h2 id="import-judul" className="text-xl font-bold text-[#12294d]">
-              Import Data Alumni (.xlsx)
+              Import Data Alumni / Dapodik
             </h2>
           </div>
           <button
@@ -116,30 +120,61 @@ export default function ImportDataModal({ onTutup, onBerhasil }) {
           </button>
         </div>
 
-        <div className="px-7 py-6 space-y-5">
-          {/* Petunjuk */}
-          <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-800 space-y-1">
-            <p className="font-semibold">Format Excel yang didukung (.xlsx / .xls):</p>
-            <p>
-              Baris pertama harus berisi header: <code className="rounded bg-blue-100 px-1">NIS</code>, <code className="rounded bg-blue-100 px-1">Nama</code>, <code className="rounded bg-blue-100 px-1">Jurusan</code>, <code className="rounded bg-blue-100 px-1">Tahun Lulus</code>, <code className="rounded bg-blue-100 px-1">Email</code>, <code className="rounded bg-blue-100 px-1">No HP</code>
-            </p>
-            <p className="text-xs text-blue-700">
-              * Data valid akan disimpan secara aman via transaksi atomik. NIS yang sudah terdaftar akan dilewati otomatis tanpa membuat duplikat.
-            </p>
-            <button
-              type="button"
-              onClick={unduhContohExcel}
-              className="mt-2 inline-flex items-center gap-1.5 text-xs font-bold text-blue-700 underline underline-offset-2 hover:text-blue-900"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-                strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5" aria-hidden="true">
-                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
-                <polyline points="7 10 12 15 17 10" />
-                <line x1="12" y1="15" x2="12" y2="3" />
-              </svg>
-              Unduh contoh file CSV/Excel
-            </button>
+        <div className="px-7 py-6 space-y-4">
+          {/* Badge Dukungan Dapodik */}
+          <div className="flex items-start gap-2.5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs text-emerald-800">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600">
+              <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div>
+              <p className="font-bold text-emerald-900">Mendukung Ekspor Mentah Dapodik Sekolah!</p>
+              <p className="text-emerald-700 mt-0.5">
+                Operator tidak perlu merapikan Excel. File langsung dari Dapodik (Daftar Peserta Didik) akan otomatis dideteksi, dipetakan kodenya, dan disaring.
+              </p>
+            </div>
           </div>
+
+          {/* Opsi Pengaturan Import */}
+          {!hasil && (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 rounded-xl border border-slate-100 bg-slate-50/70 p-3.5">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Tahun Kelulusan Alumni:
+                </label>
+                <input
+                  type="number"
+                  min="1990"
+                  max="2100"
+                  value={tahunLulus}
+                  onChange={(e) => setTahunLulus(e.target.value)}
+                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-800 focus:border-[#1769aa] focus:outline-none"
+                  placeholder="2024"
+                />
+                <p className="text-[11px] text-slate-400 mt-0.5">
+                  Digunakan untuk data yang tidak memuat tahun lulus.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Filter Kelas (Dapodik):
+                </label>
+                <select
+                  value={filterKelas}
+                  onChange={(e) => setFilterKelas(e.target.value)}
+                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-800 focus:border-[#1769aa] focus:outline-none"
+                >
+                  <option value="XII">Hanya Kelas XII (Calon Alumni)</option>
+                  <option value="ALL">Semua Kelas (X, XI, XII)</option>
+                  <option value="XI">Hanya Kelas XI</option>
+                  <option value="X">Hanya Kelas X</option>
+                </select>
+                <p className="text-[11px] text-slate-400 mt-0.5">
+                  Otomatis menyaring dari kode Rombel.
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Area upload */}
           {!hasil && (
