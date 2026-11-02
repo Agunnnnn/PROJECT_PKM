@@ -21,6 +21,8 @@ import DataAlumni from "./pages/admin/DataAlumni";
 import Laporan from "./pages/admin/Laporan";
 import ProfilAdmin from "./pages/admin/ProfilAdmin";
 
+import TambahAkunAdmin from "./pages/admin/TambahAkunAdmin";
+
 // Kalau belum ada token, lempar ke halaman login
 function PrivateRoute({ children }) {
   const token = localStorage.getItem("token");
@@ -77,6 +79,7 @@ export default function App() {
           <Route path="/admin/data-survey" element={<DataSurvey />} />
           <Route path="/admin/laporan" element={<Laporan />} />
           <Route path="/admin/profil" element={<ProfilAdmin />} />
+          <Route path="/admin/tambah-akun" element={<TambahAkunAdmin />} />
         </Route>
       </Routes>
     </BrowserRouter>

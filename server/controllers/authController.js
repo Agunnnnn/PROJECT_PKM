@@ -6,12 +6,16 @@ import { fileURLToPath } from "url";
 import {
   findAdminByUsername,
   findAdminById,
+  createAdmin,
   updateAdminPassword,
   getAdminProfile,
   updateAdminProfile,
   updateAdminFoto,
   updateAdminLastLogin,
   isUsernameTaken,
+  isUsernameExist,
+  getAllAdmins,
+  deleteAdminById,
 } from "../models/Admin.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -290,6 +294,136 @@ export const hapusFotoAdmin = async (req, res, next) => {
     await updateAdminFoto(adminId, null);
     const profilBaru = await getAdminProfile(adminId);
     res.json({ message: "Foto profil berhasil dihapus", profil: profilBaru });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ─── Tambah Akun Admin ────────────────────────────────────────────────────────
+export const tambahAkunAdmin = async (req, res, next) => {
+  try {
+    const rawUsername = (req.body || {}).username;
+    const rawPassword = (req.body || {}).password;
+    const rawKonfirmasi = (req.body || {}).konfirmasiPassword;
+    const rawNama = (req.body || {}).nama;
+
+    // Validasi tipe & kekosongan
+    if (
+      typeof rawUsername !== "string" ||
+      typeof rawPassword !== "string" ||
+      !rawUsername.trim() ||
+      !rawPassword
+    ) {
+      return res
+        .status(400)
+        .json({ message: "Username dan password wajib diisi" });
+    }
+
+    const username = rawUsername.trim();
+    const nama = rawNama?.trim() || username;
+
+    // Panjang minimum
+    if (username.length < 3) {
+      return res
+        .status(400)
+        .json({ message: "Username minimal 3 karakter" });
+    }
+
+    // Hanya boleh huruf, angka, underscore, atau titik — cegah injection via username
+    if (!/^[a-zA-Z0-9_.]+$/.test(username)) {
+      return res.status(400).json({
+        message:
+          "Username hanya boleh mengandung huruf, angka, titik, atau underscore",
+      });
+    }
+
+    if (rawPassword.length < 6) {
+      return res
+        .status(400)
+        .json({ message: "Password minimal 6 karakter" });
+    }
+
+    if (rawKonfirmasi && rawPassword !== rawKonfirmasi) {
+      return res
+        .status(400)
+        .json({ message: "Konfirmasi password tidak cocok" });
+    }
+
+    // Cek username sudah terpakai
+    const sudahAda = await isUsernameExist(username);
+    if (sudahAda) {
+      return res
+        .status(409)
+        .json({ message: "Username sudah digunakan, pilih username lain" });
+    }
+
+    // Hash password sebelum disimpan
+    const hashedPassword = await bcrypt.hash(rawPassword, 10);
+
+    // Simpan ke DB — role dikunci ke "Administrator" (tidak bisa diatur dari request)
+    const { id } = await createAdmin(username, hashedPassword);
+
+    // Perbarui kolom nama setelah insert (createAdmin hanya set username & password)
+    if (nama !== username) {
+      await updateAdminProfile(id, {
+        username,
+        nama,
+        email: "",
+        telepon: "",
+        role: "Administrator",
+      });
+    }
+
+    return res.status(201).json({
+      message: `Akun admin "${username}" berhasil dibuat`,
+      admin: { id, username, nama, role: "Administrator" },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ─── Daftar Semua Admin ───────────────────────────────────────────────────────
+export const getDaftarAdmin = async (req, res, next) => {
+  try {
+    const admins = await getAllAdmins();
+    // Jangan kirim password ke client — query sudah tidak include kolom password
+    return res.json(admins);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ─── Hapus Akun Admin ─────────────────────────────────────────────────────────
+export const hapusAkunAdmin = async (req, res, next) => {
+  try {
+    const rawId = req.params.id;
+    const targetId = /^\d+$/.test(rawId) ? parseInt(rawId, 10) : NaN;
+
+    if (!targetId || isNaN(targetId)) {
+      return res.status(400).json({ message: "ID admin tidak valid" });
+    }
+
+    // Admin tidak boleh menghapus dirinya sendiri
+    if (req.admin?.id === targetId) {
+      return res
+        .status(400)
+        .json({ message: "Anda tidak dapat menghapus akun Anda sendiri" });
+    }
+
+    const target = await findAdminById(targetId);
+    if (!target) {
+      return res.status(404).json({ message: "Akun admin tidak ditemukan" });
+    }
+
+    const berhasil = await deleteAdminById(targetId);
+    if (!berhasil) {
+      return res
+        .status(500)
+        .json({ message: "Gagal menghapus akun admin dari database" });
+    }
+
+    return res.json({ message: `Akun admin "${target.username}" berhasil dihapus` });
   } catch (error) {
     next(error);
   }

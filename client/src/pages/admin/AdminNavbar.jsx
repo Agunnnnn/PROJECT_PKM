@@ -6,6 +6,7 @@ const MENU = [
   { label: "Dashboard", to: "/admin/dashboard", icon: "grid" },
   { label: "Data Alumni", to: "/admin/data", icon: "users" },
   { label: "Laporan", to: "/admin/laporan", icon: "report" },
+  { label: "Kelola Admin", to: "/admin/tambah-akun", icon: "shield" },
   { label: "Profil Admin", to: "/admin/profil", icon: "user" },
 ];
 
@@ -51,6 +52,12 @@ const ICONS = {
     <Svg>
       <circle cx="12" cy="8" r="4" />
       <path d="M4 21c0-4.400 3.600-8 8-8s8 3.600 8 8" />
+    </Svg>
+  ),
+  shield: (
+    <Svg>
+      <path d="M12 3l7 4v5c0 4.418-3.134 8.572-7 9.93C8.134 20.572 5 16.418 5 12V7l7-4z" />
+      <path d="M9 12l2 2 4-4" />
     </Svg>
   ),
   logout: (

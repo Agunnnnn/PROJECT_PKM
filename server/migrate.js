@@ -27,6 +27,7 @@ const migrate = async () => {
     await addColumnIfMissing("foto",       "VARCHAR(255) DEFAULT NULL");
     await addColumnIfMissing("status",     "VARCHAR(20) DEFAULT 'Aktif'");
     await addColumnIfMissing("last_login", "DATETIME DEFAULT NULL");
+    await addColumnIfMissing("created_at", "TIMESTAMP DEFAULT CURRENT_TIMESTAMP");
 
     console.log("\n✅ Migrasi selesai!");
   } catch (err) {
