@@ -266,13 +266,30 @@ export default function DataAlumni() {
             </div>
           </div>
 
-          {/* Baris filter + aksi */}
+          {/* Mobile: search bar full-width di atas sendiri */}
+          <label className="relative mb-3 block w-full lg:hidden">
+            <span className="sr-only">Cari nama alumni</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"
+              className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden="true">
+              <circle cx="11" cy="11" r="7" />
+              <path d="M20 20l-3.5-3.5" />
+            </svg>
+            <input
+              type="text"
+              value={cari}
+              onChange={(e) => { setCari(e.target.value); setHalaman(1); }}
+              placeholder="Cari nama alumni..."
+              className="h-12 w-full rounded-xl border border-slate-200 bg-white pl-11 pr-5 text-base text-slate-700 placeholder:text-slate-400 focus:border-[#1769aa] focus:outline-none focus:ring-2 focus:ring-[#1769aa]/20"
+            />
+          </label>
+
+          {/* Baris tombol + filter (mobile) & semua kontrol (desktop) */}
           <div className="flex flex-wrap items-center gap-3 lg:flex-nowrap">
-            {/* Cari */}
-            <label className="relative order-1 min-w-0 flex-1 lg:order-2">
+            {/* Cari — hanya tampil di desktop */}
+            <label className="relative order-1 hidden min-w-0 flex-1 lg:order-2 lg:block">
               <span className="sr-only">Cari nama alumni</span>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"
-                className="pointer-events-none absolute left-4 top-1/2 hidden h-4 w-4 -translate-y-1/2 text-slate-400 lg:block" aria-hidden="true">
+                className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden="true">
                 <circle cx="11" cy="11" r="7" />
                 <path d="M20 20l-3.5-3.5" />
               </svg>
