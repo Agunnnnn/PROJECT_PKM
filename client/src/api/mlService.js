@@ -1,6 +1,6 @@
 import api from "./axios";
 
-const ML_DIRECT_URL = "http://localhost:5001";
+const ML_DIRECT_URL = import.meta.env.VITE_ML_URL || "http://localhost:5001";
 
 /**
  * Cek status kesehatan / ketersediaan ML API

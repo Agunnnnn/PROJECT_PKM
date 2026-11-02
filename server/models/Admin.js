@@ -78,3 +78,23 @@ export const isUsernameTaken = async (username, currentAdminId) => {
   );
   return rows.length > 0;
 };
+
+export const isUsernameExist = async (username) => {
+  const [rows] = await pool.query(
+    "SELECT id FROM admin WHERE username = ?",
+    [username]
+  );
+  return rows.length > 0;
+};
+
+export const getAllAdmins = async () => {
+  const [rows] = await pool.query(
+    "SELECT id, username, nama, email, telepon, role, foto, created_at FROM admin ORDER BY created_at ASC"
+  );
+  return rows;
+};
+
+export const deleteAdminById = async (id) => {
+  const [result] = await pool.query("DELETE FROM admin WHERE id = ?", [id]);
+  return result.affectedRows > 0;
+};
