@@ -134,13 +134,42 @@ export const hapusAlumni = async (req, res, next) => {
   }
 };
 
-// ─── Import Excel ─────────────────────────────────────────────────────────────
-// Kolom yang dikenali (fleksibel): nis/nisn, nama, jurusan, tahun/tahunlulus, email, nohp/hp/telepon
-// Fitur: validasi per baris dengan laporan error detail (baris ke-berapa & alasannya)
+// ─── Helper: Mapping kode Rombel Dapodik ke Jurusan Resmi ─────────────────────
+const mapRombelToJurusan = (rombel) => {
+  if (!rombel) return null;
+  const upper = String(rombel).toUpperCase().replace(/\s+/g, "");
+  if (upper.includes("RPL")) return "Rekayasa Perangkat Lunak";
+  if (upper.includes("AKL") || upper.includes(".AK")) return "Akuntansi";
+  if (upper.includes("BD")) return "Bisnis Daring dan Pemasaran";
+  if (upper.includes("MP") || upper.includes("OTKP")) return "Otomatisasi Tata Kelola Perkantoran";
+  if (upper.includes("PH") || upper.includes("HOTEL")) return "Perhotelan";
+  return String(rombel).trim();
+};
+
+// ─── Helper: Ekstrak Tingkat Kelas dari Rombel ─────────────────────────────────
+const mapRombelToTingkat = (rombel) => {
+  if (!rombel) return "UNKNOWN";
+  const upper = String(rombel).toUpperCase().trim();
+  if (upper.startsWith("XII.") || upper.startsWith("XII ") || upper.startsWith("12")) return "XII";
+  if (upper.startsWith("XI.") || upper.startsWith("XI ") || upper.startsWith("11")) return "XI";
+  if (upper.startsWith("X.") || upper.startsWith("X ") || upper.startsWith("10")) return "X";
+  return "UNKNOWN";
+};
+
+// ─── Import Excel & Dapodik ──────────────────────────────────────────────────
+// Mendukung 2 format:
+// 1. Template Standar Tracer Study (Header baris 1: NIS, Nama, Jurusan, Tahun Lulus, Email, No HP)
+// 2. Format Mentah Dapodik Kemendikbud (Header otomatis dideteksi baris 5, membaca NISN, Nama, Rombel, HP, Email)
+// Fitur: filter tingkat (XII/XI/X/ALL), default tahun kelulusan, dan validasi per baris
 export const importAlumniExcel = async (req, res, next) => {
   try {
     if (!req.file)
       return res.status(400).json({ message: "File Excel tidak ditemukan." });
+
+    const filterKelas = (req.body.filterKelas || "XII").trim(); // Default hanya kelas XII
+    const defaultTahun = req.body.tahunLulus
+      ? parseInt(String(req.body.tahunLulus).trim(), 10)
+      : new Date().getFullYear();
 
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(req.file.buffer);
@@ -151,9 +180,35 @@ export const importAlumniExcel = async (req, res, next) => {
         .status(400)
         .json({ message: "Sheet pertama tidak ditemukan di file Excel." });
 
-    // Ambil baris header (baris 1)
-    const headerRow = sheet.getRow(1).values; // index mulai dari 1 (ExcelJS)
-    const colMap = {}; // nama kolom ternormalisasi → index
+    // ─── Deteksi Baris Header Otomatis (Baris 1 hingga 10) ───────────────────
+    let headerRowNum = 1;
+    let isDapodik = false;
+
+    for (let r = 1; r <= Math.min(10, sheet.rowCount); r++) {
+      const rowVals = sheet.getRow(r).values;
+      if (!rowVals || !Array.isArray(rowVals)) continue;
+      const normalizedCells = rowVals.map((c) => norm(c));
+      const hasNis = normalizedCells.some(
+        (c) => c === "nis" || c === "nisn" || c === "nipd"
+      );
+      const hasNama = normalizedCells.some(
+        (c) => c === "nama" || c === "namalengkap"
+      );
+      const hasJurusanOrRombel = normalizedCells.some(
+        (c) => c === "jurusan" || c.includes("rombel")
+      );
+
+      if (hasNis && hasNama && hasJurusanOrRombel) {
+        headerRowNum = r;
+        isDapodik = normalizedCells.some(
+          (c) => c.includes("rombel") || c === "nisn" || c === "nipd"
+        );
+        break;
+      }
+    }
+
+    const headerRow = sheet.getRow(headerRowNum).values;
+    const colMap = {};
     headerRow.forEach((val, idx) => {
       if (val != null) colMap[norm(val)] = idx;
     });
@@ -162,42 +217,84 @@ export const importAlumniExcel = async (req, res, next) => {
       const idx = colMap[key];
       if (idx == null) return null;
       const cell = row.getCell(idx);
-      return cell.value != null ? String(cell.value).trim() : null;
+      if (cell.value == null) return null;
+      if (typeof cell.value === "object" && cell.value.text) {
+        return String(cell.value.text).trim();
+      }
+      return String(cell.value).trim();
     };
 
-    // ─── Tahap 1: Baca & validasi semua baris ─────────────────────────────
-    const validRows = []; // baris lolos validasi → siap insert
-    const errorRows = []; // baris bermasalah → dilaporkan ke admin
+    // ─── Tahap 1: Baca & validasi baris data ─────────────────────────────────
+    const validRows = [];
+    const errorRows = [];
+    let filteredOutCount = 0;
 
     sheet.eachRow((row, rowNum) => {
-      if (rowNum === 1) return; // skip header
+      // Lewati baris header dan baris sebelum header
+      if (rowNum <= headerRowNum) return;
 
-      const nis = getCel(row, "nis") || getCel(row, "nisn");
       const nama = getCel(row, "nama") || getCel(row, "namalengkap");
-      const jurusan = getCel(row, "jurusan") || getCel(row, "programkeahlian");
-      const tahunRaw =
+      const nisRaw =
+        getCel(row, "nisn") || getCel(row, "nis") || getCel(row, "nipd");
+
+      // Lewati jika ini adalah baris kosong atau subheader berulang
+      if (!nama && !nisRaw) return;
+      if (
+        norm(nama) === "nama" ||
+        norm(nisRaw) === "nis" ||
+        norm(nisRaw) === "nisn" ||
+        norm(nisRaw) === "nipd"
+      ) {
+        return;
+      }
+
+      // Ambil rombel & jurusan
+      const rombelRaw =
+        getCel(row, "rombelsaatini") || getCel(row, "rombel");
+
+      // Jika format Dapodik dan ada filter kelas (misal hanya kelas XII)
+      if (isDapodik && rombelRaw && filterKelas !== "ALL") {
+        const tingkat = mapRombelToTingkat(rombelRaw);
+        if (tingkat !== filterKelas) {
+          filteredOutCount++;
+          return; // dilewati karena bukan kelas yang ditargetkan (bukan error)
+        }
+      }
+
+      const jurusan =
+        (isDapodik ? mapRombelToJurusan(rombelRaw) : null) ||
+        getCel(row, "jurusan") ||
+        getCel(row, "programkeahlian") ||
+        mapRombelToJurusan(rombelRaw);
+
+      // Tahun lulus: ambil dari excel jika ada, atau fallback ke default input tahun
+      const tahunCell =
         getCel(row, "tahunlulus") ||
         getCel(row, "tahun") ||
         getCel(row, "angkatan");
+      const tahunRaw = tahunCell || defaultTahun;
+
       const email = getCel(row, "email");
-      const noHp =
-        getCel(row, "nohp") ||
+      const noHpRaw =
         getCel(row, "hp") ||
+        getCel(row, "nohp") ||
         getCel(row, "telepon") ||
         getCel(row, "nomorhp");
 
-      // Kumpulkan semua error untuk baris ini sebelum putuskan skip/valid
+      // Bersihkan noHp jika ada format ilmiah/spasi
+      const noHp = noHpRaw ? String(noHpRaw).replace(/[^\d+]/g, "").trim() : null;
+
       const rowErrors = [];
 
-      if (!nis) rowErrors.push("NIS kosong");
-      else if (String(nis).length > 50)
+      if (!nisRaw) rowErrors.push("NIS / NISN kosong");
+      else if (String(nisRaw).length > 50)
         rowErrors.push("NIS terlalu panjang (maks 50 karakter)");
 
       if (!nama) rowErrors.push("Nama kosong");
       else if (String(nama).length > 100)
         rowErrors.push("Nama terlalu panjang (maks 100 karakter)");
 
-      if (!jurusan) rowErrors.push("Jurusan kosong");
+      if (!jurusan) rowErrors.push("Jurusan / Rombel kosong");
       else if (String(jurusan).length > 100)
         rowErrors.push("Jurusan terlalu panjang (maks 100 karakter)");
 
@@ -206,7 +303,7 @@ export const importAlumniExcel = async (req, res, next) => {
         rowErrors.push("Tahun lulus kosong atau bukan angka");
       else if (tahunNum < 1990 || tahunNum > 2100)
         rowErrors.push(
-          `Tahun lulus tidak valid: ${tahunRaw} (harus antara 1990–2100)`,
+          `Tahun lulus tidak valid: ${tahunRaw} (harus antara 1990–2100)`
         );
 
       if (rowErrors.length > 0) {
@@ -214,30 +311,50 @@ export const importAlumniExcel = async (req, res, next) => {
         return;
       }
 
-      validRows.push({ nis, nama, jurusan, tahunLulus: tahunNum, email, noHp });
+      validRows.push({
+        nis: String(nisRaw).trim(),
+        nama: String(nama).trim(),
+        jurusan: String(jurusan).trim(),
+        tahunLulus: tahunNum,
+        email: email ? String(email).trim() : null,
+        noHp: noHp || null,
+      });
     });
 
     if (validRows.length === 0 && errorRows.length === 0) {
       return res.status(400).json({
         message:
-          "Tidak ada data di file Excel. Pastikan baris 1 adalah header (NIS, Nama, Jurusan, Tahun Lulus).",
+          "Tidak ada data valid yang ditemukan di file Excel. Pastikan file berisi data siswa / alumni.",
       });
     }
 
-    // ─── Tahap 2: Insert baris valid dibungkus transaksi, skip duplikat NIS ──
-    const { inserted, skipped, skippedDetail } = await bulkInsertAlumni(validRows);
+    // ─── Tahap 2: Insert baris valid dibungkus transaksi (atomic) ────────────
+    const { inserted, skipped, skippedDetail } = await bulkInsertAlumni(
+      validRows
+    );
+
+    const filterInfo =
+      filteredOutCount > 0
+        ? ` (${filteredOutCount} siswa non-Kelas ${filterKelas} dilewati otomatis)`
+        : "";
 
     res.json({
-      message: `Import selesai. ${inserted} ditambahkan, ${skipped} dilewati (NIS sudah ada), ${errorRows.length} baris error.`,
+      message: `Import ${isDapodik ? "Dapodik" : "Excel"} selesai. ${inserted} ditambahkan, ${skipped} dilewati (NIS sudah ada), ${errorRows.length} baris error.${filterInfo}`,
       inserted,
       skipped,
+      filteredOut: filteredOutCount,
+      isDapodik,
       errorCount: errorRows.length,
-      errors: errorRows, // { baris: rowNum, error: "..." }
+      errors: errorRows,
       skippedDetail,
     });
   } catch (error) {
     console.error("Import Excel error:", error);
-    if (error.message?.includes("Excel") || error.message?.includes("workbook") || error.message?.includes("zip")) {
+    if (
+      error.message?.includes("Excel") ||
+      error.message?.includes("workbook") ||
+      error.message?.includes("zip")
+    ) {
       return res.status(400).json({
         message:
           "Gagal memproses file Excel. Pastikan file berformat Excel (.xlsx/.xls) yang valid.",
