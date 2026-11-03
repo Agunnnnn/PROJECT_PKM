@@ -22,6 +22,17 @@ const HALAMAN_RINCIAN = {
   Wirausaha: RincianWirausaha,
 };
 
+// Didefinisikan di luar komponen agar tidak dibuat ulang tiap render
+const FIELD_ANALISIS = new Set([
+  "jurusan",
+  "statusSaatIni",
+  "bidangKerja",
+  "jurusanKampus",
+  "namaKampus",
+  "namaPerusahaan",
+  "lamaTungguKerja",
+]);
+
 export default function FormSurvey() {
   const [step, setStep] = useState(1);
   const [rincian, setRincian] = useState(false); // true = sedang di halaman rincian (langkah 2)
@@ -62,10 +73,14 @@ export default function FormSurvey() {
   }, [step, hasil, loadingHasil]);
 
   const handleChange = (e) => {
-    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
-    // Reset hasil jika ada input diubah sehingga harus dihitung ulang saat Lanjut
-    setHasil(null);
-    setAnalisisKey("");
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
+    // Reset hasil analisis HANYA jika field yang berubah mempengaruhi analisis ML
+    // Field seperti "saranUntukSekolah" tidak boleh memicu reset
+    if (FIELD_ANALISIS.has(name)) {
+      setHasil(null);
+      setAnalisisKey("");
+    }
   };
 
   // Ganti status = kosongkan rincian lama & otomatis pindah ke langkah berikutnya
