@@ -13,6 +13,7 @@ import Tentang from "./pages/Tentang";
 import Sambutan from "./pages/Sambutan";
 import Panduan from "./pages/Panduan";
 import Faq from "./pages/Faq";
+import AboutDeveloper from "./pages/AboutDeveloper";
 import FormSurvey from "./pages/survey/FormSurvey";
 import Login from "./pages/Login";
 import Dashboard from "./pages/admin/Dashboard";
@@ -67,6 +68,7 @@ export default function App() {
           <Route path="/sambutan" element={<Sambutan />} />
           <Route path="/panduan" element={<Panduan />} />
           <Route path="/faq" element={<Faq />} />
+          <Route path="/about-developer" element={<AboutDeveloper />} />
           <Route path="/survey" element={<FormSurvey />} />
           <Route path="/login" element={<Login />} />
         </Route>

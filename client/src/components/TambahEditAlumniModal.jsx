@@ -21,10 +21,15 @@ const KOSONG = {
 };
 
 /* ─── Komponen ──────────────────────────────────────────────── */
-export default function TambahEditAlumniModal({ mode, dataAwal, onTutup, onBerhasil }) {
+export default function TambahEditAlumniModal({
+  mode,
+  dataAwal,
+  onTutup,
+  onBerhasil,
+}) {
   const [form, setForm] = useState(KOSONG);
   const [jurusanList, setJurusanList] = useState(JURUSAN_DEFAULT);
-  const [tahunList, setTahunList]     = useState([]);
+  const [tahunList, setTahunList] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const inputPertama = useRef(null);
@@ -51,21 +56,27 @@ export default function TambahEditAlumniModal({ mode, dataAwal, onTutup, onBerha
 
   /* muat daftar jurusan dan tahun lulus dari server */
   useEffect(() => {
-    api.get("/alumni/jurusan-list")
+    api
+      .get("/alumni/jurusan-list")
       .then((r) => {
-        const gabung = Array.from(new Set([...JURUSAN_DEFAULT, ...(r.data || [])])).sort();
+        const gabung = Array.from(
+          new Set([...JURUSAN_DEFAULT, ...(r.data || [])]),
+        ).sort();
         setJurusanList(gabung);
       })
       .catch(() => {});
 
-    api.get("/alumni/tahun-list")
+    api
+      .get("/alumni/tahun-list")
       .then((r) => setTahunList(r.data || []))
       .catch(() => {});
   }, []);
 
   /* tutup dengan Escape */
   useEffect(() => {
-    const handler = (e) => { if (e.key === "Escape") onTutup(); };
+    const handler = (e) => {
+      if (e.key === "Escape") onTutup();
+    };
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
   }, [onTutup]);
@@ -91,7 +102,11 @@ export default function TambahEditAlumniModal({ mode, dataAwal, onTutup, onBerha
       } else {
         await api.post("/alumni/tambah", form);
       }
-      onBerhasil(isEdit ? "Data alumni berhasil diperbarui." : "Alumni baru berhasil ditambahkan.");
+      onBerhasil(
+        isEdit
+          ? "Data alumni berhasil diperbarui."
+          : "Alumni baru berhasil ditambahkan.",
+      );
     } catch (err) {
       setError(err.response?.data?.message || "Terjadi kesalahan. Coba lagi.");
     } finally {
@@ -105,7 +120,9 @@ export default function TambahEditAlumniModal({ mode, dataAwal, onTutup, onBerha
       aria-modal="true"
       aria-labelledby="modal-judul"
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-      onClick={(e) => { if (e.target === e.currentTarget) onTutup(); }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onTutup();
+      }}
     >
       <div className="w-full max-w-lg rounded-2xl bg-white shadow-2xl">
         {/* Header */}
@@ -119,8 +136,15 @@ export default function TambahEditAlumniModal({ mode, dataAwal, onTutup, onBerha
             aria-label="Tutup modal"
             className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
-              strokeLinecap="round" className="h-5 w-5" aria-hidden="true">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              className="h-5 w-5"
+              aria-hidden="true"
+            >
               <path d="M18 6L6 18M6 6l12 12" />
             </svg>
           </button>
@@ -130,14 +154,20 @@ export default function TambahEditAlumniModal({ mode, dataAwal, onTutup, onBerha
         <form onSubmit={kirim} noValidate>
           <div className="space-y-4 px-7 py-6">
             {error && (
-              <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              <div
+                role="alert"
+                className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+              >
                 {error}
               </div>
             )}
 
             {/* NIS */}
             <div>
-              <label htmlFor="nis" className="mb-1.5 block text-sm font-semibold text-slate-700">
+              <label
+                htmlFor="nis"
+                className="mb-1.5 block text-sm font-semibold text-slate-700"
+              >
                 NIS <span className="text-red-500">*</span>
               </label>
               <input
@@ -155,7 +185,10 @@ export default function TambahEditAlumniModal({ mode, dataAwal, onTutup, onBerha
 
             {/* Nama */}
             <div>
-              <label htmlFor="nama" className="mb-1.5 block text-sm font-semibold text-slate-700">
+              <label
+                htmlFor="nama"
+                className="mb-1.5 block text-sm font-semibold text-slate-700"
+              >
                 Nama Lengkap <span className="text-red-500">*</span>
               </label>
               <input
@@ -173,7 +206,10 @@ export default function TambahEditAlumniModal({ mode, dataAwal, onTutup, onBerha
             {/* Jurusan + Tahun Lulus (sejajar) */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label htmlFor="jurusan" className="mb-1.5 block text-sm font-semibold text-slate-700">
+                <label
+                  htmlFor="jurusan"
+                  className="mb-1.5 block text-sm font-semibold text-slate-700"
+                >
                   Jurusan <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
@@ -187,7 +223,9 @@ export default function TambahEditAlumniModal({ mode, dataAwal, onTutup, onBerha
                   >
                     <option value="">Pilih jurusan</option>
                     {jurusanList.map((j) => (
-                      <option key={j} value={j}>{j}</option>
+                      <option key={j} value={j}>
+                        {j}
+                      </option>
                     ))}
                   </select>
                   <ChevronIcon className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
@@ -195,7 +233,10 @@ export default function TambahEditAlumniModal({ mode, dataAwal, onTutup, onBerha
               </div>
 
               <div>
-                <label htmlFor="tahunLulus" className="mb-1.5 block text-sm font-semibold text-slate-700">
+                <label
+                  htmlFor="tahunLulus"
+                  className="mb-1.5 block text-sm font-semibold text-slate-700"
+                >
                   Tahun Lulus <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
@@ -208,12 +249,15 @@ export default function TambahEditAlumniModal({ mode, dataAwal, onTutup, onBerha
                     className="h-11 w-full appearance-none rounded-xl border border-slate-200 bg-white pl-4 pr-9 text-sm text-slate-800 focus:border-[#1769aa] focus:outline-none focus:ring-2 focus:ring-[#1769aa]/20"
                   >
                     <option value="">Pilih tahun</option>
-                    {tahunList.length > 0
-                      ? tahunList.map((t) => (
-                          <option key={t} value={t}>{t}</option>
-                        ))
-                      : <option disabled>Memuat...</option>
-                    }
+                    {tahunList.length > 0 ? (
+                      tahunList.map((t) => (
+                        <option key={t} value={t}>
+                          {t}
+                        </option>
+                      ))
+                    ) : (
+                      <option disabled>Memuat...</option>
+                    )}
                   </select>
                   <ChevronIcon className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
                 </div>
@@ -222,8 +266,12 @@ export default function TambahEditAlumniModal({ mode, dataAwal, onTutup, onBerha
 
             {/* Email */}
             <div>
-              <label htmlFor="email" className="mb-1.5 block text-sm font-semibold text-slate-700">
-                Email <span className="text-slate-400 font-normal">(opsional)</span>
+              <label
+                htmlFor="email"
+                className="mb-1.5 block text-sm font-semibold text-slate-700"
+              >
+                Email{" "}
+                <span className="text-slate-400 font-normal">(opsional)</span>
               </label>
               <input
                 id="email"
@@ -238,8 +286,12 @@ export default function TambahEditAlumniModal({ mode, dataAwal, onTutup, onBerha
 
             {/* No HP */}
             <div>
-              <label htmlFor="noHp" className="mb-1.5 block text-sm font-semibold text-slate-700">
-                No. HP / WhatsApp <span className="text-slate-400 font-normal">(opsional)</span>
+              <label
+                htmlFor="noHp"
+                className="mb-1.5 block text-sm font-semibold text-slate-700"
+              >
+                No. HP / WhatsApp{" "}
+                <span className="text-slate-400 font-normal">(opsional)</span>
               </label>
               <input
                 id="noHp"
@@ -268,7 +320,11 @@ export default function TambahEditAlumniModal({ mode, dataAwal, onTutup, onBerha
               disabled={loading}
               className="h-10 rounded-xl bg-[#1769aa] px-6 text-sm font-bold text-white transition hover:bg-[#125687] disabled:opacity-60"
             >
-              {loading ? "Menyimpan..." : isEdit ? "Simpan Perubahan" : "Tambah Alumni"}
+              {loading
+                ? "Menyimpan..."
+                : isEdit
+                  ? "Simpan Perubahan"
+                  : "Tambah Alumni"}
             </button>
           </div>
         </form>
@@ -279,8 +335,16 @@ export default function TambahEditAlumniModal({ mode, dataAwal, onTutup, onBerha
 
 function ChevronIcon({ className = "" }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"
-      strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
       <path d="M5 9l7 7 7-7" />
     </svg>
   );
