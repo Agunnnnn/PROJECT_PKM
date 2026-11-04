@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import api from "../../api/axios";
 import TambahEditAlumniModal from "../../components/TambahEditAlumniModal";
 import ImportDataModal from "../../components/ImportDataModal";
@@ -35,10 +35,12 @@ export default function DataAlumni() {
   const [pesan, setPesan]               = useState("");
   const [cari, setCari]                 = useState("");
   const [jurusan, setJurusan]           = useState("Semua");
+  const [tahun, setTahun]               = useState("Semua");
   const [halaman, setHalaman]           = useState(1);
   const [sedangHitung, setSedangHitung] = useState(false);
   const [sedangExport, setSedangExport] = useState(false);
   const [masterJurusan, setMasterJurusan] = useState([]);
+  const [masterTahun, setMasterTahun]   = useState([]);
 
   // ── State modal ──────────────────────────────────────────
   const [modalTambahEdit, setModalTambahEdit] = useState(null); // null | { mode: "tambah"|"edit", data: object|null }
@@ -89,6 +91,9 @@ export default function DataAlumni() {
     api.get("/alumni/jurusan-list")
       .then((res) => setMasterJurusan(res.data || []))
       .catch((err) => console.error("Gagal memuat master jurusan:", err));
+    api.get("/alumni/tahun-list")
+      .then((res) => setMasterTahun(res.data || []))
+      .catch((err) => console.error("Gagal memuat master tahun lulus:", err));
   }, []);
 
   /* ── Hitung ulang relevansi ML ───────────────────────── */
@@ -115,6 +120,7 @@ export default function DataAlumni() {
       setError("");
       const params = {};
       if (jurusan && jurusan !== "Semua") params.jurusan = jurusan;
+      if (tahun && tahun !== "Semua") params.tahun = tahun;
       if (cari && cari.trim()) params.cari = cari.trim();
 
       const res = await api.get("/alumni/export-excel", { params, responseType: "blob" });
@@ -128,7 +134,10 @@ export default function DataAlumni() {
       const labelJurusan = jurusan && jurusan !== "Semua"
         ? `-${jurusan.toLowerCase().replace(/[^a-z0-9]/g, "-")}`
         : "";
-      link.setAttribute("download", `data-alumni${labelJurusan}-${tgl}.xlsx`);
+      const labelTahun = tahun && tahun !== "Semua"
+        ? `-${tahun}`
+        : "";
+      link.setAttribute("download", `data-alumni${labelJurusan}${labelTahun}-${tgl}.xlsx`);
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -136,7 +145,17 @@ export default function DataAlumni() {
       setPesan("Data alumni berhasil diekspor ke Excel!");
     } catch (err) {
       console.error("Gagal ekspor alumni:", err);
-      setError(err.response?.data?.message || "Gagal mengekspor data alumni ke Excel.");
+      let pesanError = "Gagal mengekspor data alumni ke Excel.";
+      if (err.response?.data instanceof Blob) {
+        try {
+          const text = await err.response.data.text();
+          const json = JSON.parse(text);
+          if (json?.message) pesanError = json.message;
+        } catch (_) {}
+      } else if (err.response?.data?.message) {
+        pesanError = err.response.data.message;
+      }
+      setError(pesanError);
     } finally {
       setSedangExport(false);
     }
@@ -175,13 +194,24 @@ export default function DataAlumni() {
     return list.sort();
   }, [masterJurusan, daftar]);
 
+  const daftarTahun = useMemo(() => {
+    const list = Array.from(
+      new Set([
+        ...masterTahun.map(String),
+        ...daftar.map((a) => String(a.tahun)).filter((t) => t && t !== "-"),
+      ])
+    );
+    return list.sort((a, b) => Number(b) - Number(a));
+  }, [masterTahun, daftar]);
+
   const tampil = useMemo(
     () => daftar.filter(
       (a) =>
         a.nama.toLowerCase().includes(cari.trim().toLowerCase()) &&
-        (jurusan === "Semua" || a.jurusan === jurusan),
+        (jurusan === "Semua" || a.jurusan === jurusan) &&
+        (tahun === "Semua" || String(a.tahun) === String(tahun)),
     ),
-    [daftar, cari, jurusan],
+    [daftar, cari, jurusan, tahun],
   );
 
   const perHalaman    = 10;
@@ -331,16 +361,32 @@ export default function DataAlumni() {
             </button>
 
             {/* Filter jurusan */}
-            <div className="relative order-5 shrink-0 lg:order-1">
+            <div className="relative order-5 w-full shrink-0 sm:w-auto lg:order-1">
               <select
                 value={jurusan}
                 onChange={(e) => { setJurusan(e.target.value); setHalaman(1); }}
                 aria-label="Filter jurusan"
-                className="h-11 w-full appearance-none rounded-xl border border-slate-200 bg-white pl-4 pr-10 text-base text-slate-700 focus:border-[#1769aa] focus:outline-none focus:ring-2 focus:ring-[#1769aa]/20 lg:h-12 lg:w-56 lg:border-[#1769aa]/40"
+                className="h-11 w-full appearance-none rounded-xl border border-slate-200 bg-white pl-4 pr-10 text-base text-slate-700 focus:border-[#1769aa] focus:outline-none focus:ring-2 focus:ring-[#1769aa]/20 lg:h-12 lg:w-52 lg:border-[#1769aa]/40"
               >
                 <option value="Semua">Semua Jurusan</option>
                 {daftarJurusan.map((j) => (
                   <option key={j} value={j}>{j}</option>
+                ))}
+              </select>
+              <Chevron className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-600 lg:h-5 lg:w-5" />
+            </div>
+
+            {/* Filter tahun kelulusan */}
+            <div className="relative order-5 w-full shrink-0 sm:w-auto lg:order-1">
+              <select
+                value={tahun}
+                onChange={(e) => { setTahun(e.target.value); setHalaman(1); }}
+                aria-label="Filter tahun kelulusan"
+                className="h-11 w-full appearance-none rounded-xl border border-slate-200 bg-white pl-4 pr-10 text-base text-slate-700 focus:border-[#1769aa] focus:outline-none focus:ring-2 focus:ring-[#1769aa]/20 lg:h-12 lg:w-44 lg:border-[#1769aa]/40"
+              >
+                <option value="Semua">Semua Tahun</option>
+                {daftarTahun.map((t) => (
+                  <option key={t} value={t}>Tahun {t}</option>
                 ))}
               </select>
               <Chevron className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-600 lg:h-5 lg:w-5" />
@@ -377,6 +423,7 @@ export default function DataAlumni() {
                   <th className="px-3 py-5">Jurusan</th>
                   <th className="px-3 py-5">Tahun Lulus</th>
                   <th className="px-3 py-5">Status</th>
+                  <th className="px-3 py-5">Rentang Gaji</th>
                   <th className="px-3 py-5">Aktivitas Saat Ini</th>
                   <th className="px-3 py-5">Kesesuaian Jurusan</th>
                   <th className="py-5 pl-3 pr-10">Aksi</th>
@@ -385,7 +432,7 @@ export default function DataAlumni() {
               <tbody className="text-base text-slate-800">
                 {loading && (
                   <tr className="border-t border-slate-200">
-                    <td colSpan={9} className="py-12 text-center text-slate-500">
+                    <td colSpan={10} className="py-12 text-center text-slate-500">
                       Memuat data alumni...
                     </td>
                   </tr>
@@ -401,6 +448,21 @@ export default function DataAlumni() {
                       <Badge warna={WARNA_STATUS[a.status] || "bg-slate-100 text-slate-700"}>
                         {a.status}
                       </Badge>
+                    </td>
+                    <td className="px-3 py-6">
+                      {a.status === "Bekerja" ? (
+                        a.gaji ? (
+                          <span className="inline-block whitespace-nowrap rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
+                            {a.gaji}
+                          </span>
+                        ) : (
+                          <span className="text-slate-400">-</span>
+                        )
+                      ) : (
+                        <span className="inline-block whitespace-nowrap rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
+                          Belum Bekerja
+                        </span>
+                      )}
                     </td>
                     <td className="px-3 py-6 text-sm">{a.aktivitas}</td>
                     <td className="px-3 py-6">
@@ -428,7 +490,7 @@ export default function DataAlumni() {
                 ))}
                 {!loading && tampil.length === 0 && (
                   <tr className="border-t border-slate-200">
-                    <td colSpan={9} className="py-12 text-center text-slate-500">
+                    <td colSpan={10} className="py-12 text-center text-slate-500">
                       Data alumni tidak ditemukan.
                     </td>
                   </tr>
@@ -470,6 +532,18 @@ export default function DataAlumni() {
                   <p className="mt-2 text-sm text-slate-700">
                     <span className="font-semibold text-slate-500">Aktivitas: </span>
                     {a.aktivitas}
+                  </p>
+                  <p className="mt-1 text-sm text-slate-700">
+                    <span className="font-semibold text-slate-500">Rentang Gaji: </span>
+                    {a.status === "Bekerja" ? (
+                      a.gaji ? (
+                        <span className="font-bold text-emerald-700">{a.gaji}</span>
+                      ) : (
+                        <span className="text-slate-400">-</span>
+                      )
+                    ) : (
+                      <span className="font-medium text-slate-500">Belum Bekerja</span>
+                    )}
                   </p>
                   <div className="mt-3 border-t border-slate-100 pt-3">
                     <div className="flex items-center justify-between">

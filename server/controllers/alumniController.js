@@ -487,7 +487,7 @@ export const exportAlumniExcel = async (req, res, next) => {
     });
 
     // Judul Utama
-    sheet.mergeCells("A1:K1");
+    sheet.mergeCells("A1:L1");
     const titleCell = sheet.getCell("A1");
     titleCell.value = "DATA ALUMNI & TRACER STUDY - SMK PUSPITA BANGSA";
     titleCell.font = {
@@ -504,7 +504,7 @@ export const exportAlumniExcel = async (req, res, next) => {
     titleCell.alignment = { horizontal: "center", vertical: "middle" };
     sheet.getRow(1).height = 32;
 
-    sheet.mergeCells("A2:K2");
+    sheet.mergeCells("A2:L2");
     const infoCell = sheet.getCell("A2");
     const filterTeks = [
       jurusan && jurusan !== "Semua" ? `Jurusan: ${jurusan}` : "Semua Jurusan",
@@ -539,6 +539,7 @@ export const exportAlumniExcel = async (req, res, next) => {
       { header: "Email", width: 25 },
       { header: "No. HP / WA", width: 18 },
       { header: "Status Saat Ini", width: 18 },
+      { header: "Rentang Gaji", width: 18 },
       { header: "Aktivitas / Instansi / Kampus", width: 32 },
       { header: "Kesesuaian Jurusan", width: 20 },
       { header: "Lama Tunggu", width: 16 },
@@ -612,6 +613,7 @@ export const exportAlumniExcel = async (req, res, next) => {
         item.email || "-",
         item.no_hp || "-",
         item.status_saat_ini || "Belum Mengisi",
+        item.status_saat_ini === "Bekerja" ? (item.gaji || "-") : "Belum Bekerja",
         aktivitas,
         item.relevansi_jurusan || "-",
         item.lama_tunggu_kerja || "-",
@@ -632,14 +634,14 @@ export const exportAlumniExcel = async (req, res, next) => {
           bottom: { style: "thin", color: { argb: "FFE2E8F0" } },
           right: { style: "thin", color: { argb: "FFE2E8F0" } },
         };
-        cell.alignment = [0, 1, 4, 6, 7, 9, 10].includes(colIdx)
+        cell.alignment = [0, 1, 4, 6, 7, 8, 10, 11].includes(colIdx)
           ? { horizontal: "center", vertical: "middle" }
           : { horizontal: "left", vertical: "middle" };
       });
     });
 
     const summaryRowIndex = alumniList.length + 6;
-    sheet.mergeCells(`A${summaryRowIndex}:K${summaryRowIndex}`);
+    sheet.mergeCells(`A${summaryRowIndex}:L${summaryRowIndex}`);
     const summaryCell = sheet.getCell(`A${summaryRowIndex}`);
     summaryCell.value = `Ringkasan: Total ${alumniList.length} Alumni | Bekerja: ${countBekerja} | Kuliah: ${countKuliah} | Wirausaha: ${countWirausaha} | Belum Bekerja: ${countBelum} | Belum Mengisi: ${countBelumSurvey}`;
     summaryCell.font = {
