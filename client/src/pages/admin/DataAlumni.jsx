@@ -70,6 +70,7 @@ export default function DataAlumni() {
           tahun: item.tahun_lulus || "-",
           status: item.status_saat_ini || "-",
           aktivitas,
+          gaji: item.gaji || null,
           kesesuaian: item.relevansi_jurusan || "Belum dihitung",
           raw: item,
         };
