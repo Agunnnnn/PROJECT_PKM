@@ -133,6 +133,7 @@ export const createSurvey = async (req, res) => {
         const namaPerusahaanClean = normalisasiString(body.namaPerusahaan, 150);
         const bidangKerjaClean = normalisasiString(body.bidangKerja, 150);
         const lamaTungguClean = normalisasiString(body.lamaTungguKerja, 50);
+        const gajiClean = normalisasiString(body.gaji, 50);
         const namaKampusClean = normalisasiString(body.namaKampus, 150);
         const jurusanKampusClean = normalisasiString(body.jurusanKampus, 150);
         const saranClean = normalisasiString(body.saranUntukSekolah, 1000);
@@ -151,6 +152,16 @@ export const createSurvey = async (req, res) => {
                 message: `Status tidak valid. Pilih salah satu: ${validStatuses.join(", ")}`,
             });
         }
+
+        // 2b. Validasi & sanitasi gaji — wajib jika Bekerja, NULL untuk status lain
+        const validGaji = ["< 1 Juta", "1 - 2 Juta", "2 - 3 Juta", "3 - 5 Juta", "5 - 10 Juta", "> 10 Juta"];
+        if (statusClean === "Bekerja" && !validGaji.includes(gajiClean)) {
+            return res.status(400).json({
+                message: `Rentang gaji tidak valid. Pilih salah satu: ${validGaji.join(", ")}`,
+            });
+        }
+        // Paksa NULL jika bukan Bekerja — abaikan nilai yang dikirim client
+        const gajiValue = statusClean === "Bekerja" ? gajiClean : null;
 
         // 3. Survei publik tidak membuat alumni baru, hanya menerima NIS yang sudah ada
         const alumni = await findAlumniByNis(nisClean);
@@ -188,6 +199,7 @@ export const createSurvey = async (req, res) => {
             bidangKerja: bidangKerjaClean || null,
             relevansiJurusan,
             lamaTungguKerja: lamaTungguClean || null,
+            gaji: gajiValue,
             namaKampus: namaKampusClean || null,
             jurusanKampus: jurusanKampusClean || null,
             saranUntukSekolah: saranClean || null,
@@ -368,7 +380,7 @@ export const exportSurveyPdf = async (req, res, next) => {
         // Header tabel
         const startX = 40;
         let y = doc.y;
-        const colWidths = [110, 90, 110, 100, 120, 110];
+        const colWidths = [100, 80, 95, 85, 110, 90, 80];
         const headers = [
             "Nama",
             "Jurusan",
@@ -376,6 +388,7 @@ export const exportSurveyPdf = async (req, res, next) => {
             "Relevansi",
             "Perusahaan/Kampus",
             "Lama Tunggu",
+            "Gaji",
         ];
 
         const drawRow = (rowData, isHeader = false) => {
@@ -391,17 +404,23 @@ export const exportSurveyPdf = async (req, res, next) => {
             y += 20;
         };
 
-        drawRow(headers, true);
-        doc.moveTo(startX, y)
-            .lineTo(startX + colWidths.reduce((a, b) => a + b, 0), y)
-            .stroke();
-        y += 5;
+        // Gambar header tabel + garis pemisah — dipanggil ulang di setiap halaman baru
+        const drawTableHeader = () => {
+            drawRow(headers, true);
+            doc.moveTo(startX, y)
+                .lineTo(startX + colWidths.reduce((a, b) => a + b, 0), y)
+                .stroke();
+            y += 5;
+        };
+
+        drawTableHeader();
 
         surveys.forEach((s) => {
-            // Kalau halaman mau penuh, buat halaman baru
+            // Kalau halaman mau penuh, buat halaman baru + gambar ulang header
             if (y > 500) {
                 doc.addPage();
                 y = 40;
+                drawTableHeader();
             }
             drawRow([
                 s.nama,
@@ -410,6 +429,7 @@ export const exportSurveyPdf = async (req, res, next) => {
                 s.relevansi_jurusan,
                 s.nama_perusahaan || s.nama_kampus,
                 s.lama_tunggu_kerja,
+                s.gaji,
             ]);
         });
 
@@ -442,7 +462,7 @@ export const exportSurveyExcel = async (req, res, next) => {
         const sheet = workbook.addWorksheet(`Tracer Study ${tahun}`);
 
         // Judul di baris pertama
-        sheet.mergeCells("A1:F1");
+        sheet.mergeCells("A1:G1");
         sheet.getCell("A1").value =
             `Laporan Tracer Study - Tahun Lulus ${tahun}`;
         sheet.getCell("A1").font = { bold: true, size: 14 };
@@ -456,6 +476,7 @@ export const exportSurveyExcel = async (req, res, next) => {
             "Relevansi",
             "Perusahaan/Kampus",
             "Lama Tunggu Kerja",
+            "Gaji",
         ];
         sheet.getRow(3).font = { bold: true };
         sheet.columns = [
@@ -465,6 +486,7 @@ export const exportSurveyExcel = async (req, res, next) => {
             { width: 15 },
             { width: 25 },
             { width: 18 },
+            { width: 15 },
         ];
 
         // Isi data mulai baris ke-4
@@ -476,6 +498,7 @@ export const exportSurveyExcel = async (req, res, next) => {
                 s.relevansi_jurusan || "-",
                 s.nama_perusahaan || s.nama_kampus || "-",
                 s.lama_tunggu_kerja || "-",
+                s.gaji || "-",
             ]);
         });
 

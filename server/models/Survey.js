@@ -7,14 +7,15 @@ export const createSurveyEntry = async ({
     bidangKerja,
     relevansiJurusan,
     lamaTungguKerja,
+    gaji,
     namaKampus,
     jurusanKampus,
     saranUntukSekolah,
 }) => {
     const [result] = await pool.query(
         `INSERT INTO survey
-        (alumni_id, status_saat_ini, nama_perusahaan, bidang_kerja, relevansi_jurusan, lama_tunggu_kerja, nama_kampus, jurusan_kampus, saran_untuk_sekolah)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        (alumni_id, status_saat_ini, nama_perusahaan, bidang_kerja, relevansi_jurusan, lama_tunggu_kerja, gaji, nama_kampus, jurusan_kampus, saran_untuk_sekolah)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
             alumniId,
             statusSaatIni,
@@ -22,6 +23,7 @@ export const createSurveyEntry = async ({
             bidangKerja || null,
             relevansiJurusan || null,
             lamaTungguKerja || null,
+            gaji || null,
             namaKampus || null,
             jurusanKampus || null,
             saranUntukSekolah || null,
@@ -89,7 +91,7 @@ export const countSurvey = async () => {
 export const upsertSurveyByAlumniId = async (alumniId, data) => {
     const {
         statusSaatIni, namaPerusahaan, bidangKerja, relevansiJurusan,
-        lamaTungguKerja, namaKampus, jurusanKampus, saranUntukSekolah,
+        lamaTungguKerja, gaji, namaKampus, jurusanKampus, saranUntukSekolah,
     } = data;
     // Cek apakah survey sudah ada untuk alumni ini
     const [existing] = await pool.query(
@@ -99,12 +101,12 @@ export const upsertSurveyByAlumniId = async (alumniId, data) => {
     if (existing.length > 0) {
         await pool.query(
             `UPDATE survey SET status_saat_ini=?, nama_perusahaan=?, bidang_kerja=?,
-             relevansi_jurusan=?, lama_tunggu_kerja=?, nama_kampus=?, jurusan_kampus=?,
+             relevansi_jurusan=?, lama_tunggu_kerja=?, gaji=?, nama_kampus=?, jurusan_kampus=?,
              saran_untuk_sekolah=? WHERE alumni_id=?`,
             [
                 statusSaatIni, namaPerusahaan || null, bidangKerja || null,
                 relevansiJurusan || null, lamaTungguKerja || null,
-                namaKampus || null, jurusanKampus || null,
+                gaji || null, namaKampus || null, jurusanKampus || null,
                 saranUntukSekolah || null, alumniId,
             ],
         );
@@ -112,7 +114,7 @@ export const upsertSurveyByAlumniId = async (alumniId, data) => {
     } else {
         const result = await createSurveyEntry({
             alumniId, statusSaatIni, namaPerusahaan, bidangKerja,
-            relevansiJurusan, lamaTungguKerja, namaKampus, jurusanKampus, saranUntukSekolah,
+            relevansiJurusan, lamaTungguKerja, gaji, namaKampus, jurusanKampus, saranUntukSekolah,
         });
         return { id: result.id, updated: false };
     }

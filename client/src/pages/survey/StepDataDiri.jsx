@@ -46,8 +46,13 @@ export default function StepDataDiri({ form, setForm }) {
     if (name === "tahunLulus")
       return setForm({ ...form, tahunLulus: value, nama: "", nis: "" });
     if (name === "nama") {
-      const dipilih = alumniList.find((a) => a.nama === value);
-      return setForm({ ...form, nama: value, nis: dipilih ? dipilih.nis : "" });
+      // value adalah NIS — cari nama lengkap dari alumniList
+      const dipilih = alumniList.find((a) => a.nis === value);
+      return setForm({
+        ...form,
+        nama: dipilih ? dipilih.nama : "",
+        nis: value,
+      });
     }
   };
 
@@ -73,11 +78,11 @@ export default function StepDataDiri({ form, setForm }) {
       <Select
         id="nama"
         label="Nama Lengkap"
-        value={form.nama}
+        value={form.nis}
         onChange={handleChange}
         disabled={!form.tahunLulus}
         placeholder="-- Pilih Nama --"
-        options={alumniList.map((a) => ({ value: a.nama, label: a.nama }))}
+        options={alumniList.map((a) => ({ value: a.nis, label: a.nama }))}
       />
       <div>
         <label htmlFor="nis" className={labelCls}>

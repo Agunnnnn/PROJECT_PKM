@@ -94,6 +94,7 @@ export default function FormSurvey() {
           namaPerusahaan: "",
           bidangKerja: "",
           lamaTungguKerja: "",
+          gaji: "",
           namaKampus: "",
           jurusanKampus: "",
         };

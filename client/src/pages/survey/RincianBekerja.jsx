@@ -1,4 +1,5 @@
-import { Field } from "./SurveyUi";
+import { Field, Select } from "./SurveyUi";
+import { OPSI_GAJI } from "./SurveyConfig";
 
 export default function RincianBekerja({ form, onChange }) {
   return (
@@ -15,6 +16,14 @@ export default function RincianBekerja({ form, onChange }) {
         value={form.bidangKerja}
         onChange={onChange}
       />
+      <Select
+        id="gaji"
+        label="Rentang Gaji per Bulan"
+        value={form.gaji}
+        onChange={onChange}
+        placeholder="-- Pilih rentang gaji --"
+        options={OPSI_GAJI}
+      />
       <Field
         id="lamaTungguKerja"
         label="Lama Menunggu Kerja"
@@ -22,7 +31,6 @@ export default function RincianBekerja({ form, onChange }) {
         placeholder="contoh: < 3 bulan"
         value={form.lamaTungguKerja}
         onChange={onChange}
-        className="lg:col-span-2"
       />
     </div>
   );

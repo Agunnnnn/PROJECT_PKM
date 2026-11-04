@@ -64,6 +64,7 @@ CREATE TABLE `survey` (
   `nama_kampus` VARCHAR(100) DEFAULT NULL,
   `jurusan_kampus` VARCHAR(100) DEFAULT NULL,
   `saran_untuk_sekolah` TEXT DEFAULT NULL,
+  `gaji` VARCHAR(50) DEFAULT NULL COMMENT 'Rentang gaji bulanan, hanya diisi jika status Bekerja',
   `created_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_survey_alumni_id` (`alumni_id`),

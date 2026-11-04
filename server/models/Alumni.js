@@ -65,7 +65,7 @@ export const getAlumniWithSurvey = async ({ jurusan, tahunLulus, status, search 
             a.id, a.nis, a.nama, a.jurusan, a.tahun_lulus, a.email, a.no_hp,
             s.id AS survey_id,
             s.status_saat_ini, s.nama_perusahaan, s.bidang_kerja, s.relevansi_jurusan,
-            s.lama_tunggu_kerja, s.nama_kampus, s.jurusan_kampus, s.saran_untuk_sekolah,
+            s.lama_tunggu_kerja, s.gaji, s.nama_kampus, s.jurusan_kampus, s.saran_untuk_sekolah,
             s.created_at AS tanggal_survey
         FROM alumni a
         LEFT JOIN (
@@ -173,7 +173,7 @@ export const getAlumniWithSurveyPaginated = async ({
             a.id, a.nis, a.nama, a.jurusan, a.tahun_lulus, a.email, a.no_hp,
             s.id AS survey_id,
             s.status_saat_ini, s.nama_perusahaan, s.bidang_kerja, s.relevansi_jurusan,
-            s.lama_tunggu_kerja, s.nama_kampus, s.jurusan_kampus, s.saran_untuk_sekolah,
+            s.lama_tunggu_kerja, s.gaji, s.nama_kampus, s.jurusan_kampus, s.saran_untuk_sekolah,
             s.created_at AS tanggal_survey
         ${joinClause}
         ORDER BY a.tahun_lulus DESC, a.nama ASC
@@ -198,7 +198,7 @@ export const getAlumniDetailById = async (id) => {
             a.id, a.nis, a.nama, a.jurusan, a.tahun_lulus, a.email, a.no_hp, a.created_at,
             s.id AS survey_id,
             s.status_saat_ini, s.nama_perusahaan, s.bidang_kerja, s.relevansi_jurusan,
-            s.lama_tunggu_kerja, s.nama_kampus, s.jurusan_kampus, s.saran_untuk_sekolah,
+            s.lama_tunggu_kerja, s.gaji, s.nama_kampus, s.jurusan_kampus, s.saran_untuk_sekolah,
             s.created_at AS tanggal_survey
         FROM alumni a
         LEFT JOIN (

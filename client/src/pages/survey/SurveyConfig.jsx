@@ -12,10 +12,21 @@ export const initialForm = {
   namaPerusahaan: "",
   bidangKerja: "",
   lamaTungguKerja: "",
+  gaji: "",
   namaKampus: "",
   jurusanKampus: "",
   saranUntukSekolah: "",
 };
+
+// Opsi rentang gaji yang tersedia di dropdown
+export const OPSI_GAJI = [
+  { value: "< 1 Juta",    label: "< 1 Juta" },
+  { value: "1 - 2 Juta",  label: "1 - 2 Juta" },
+  { value: "2 - 3 Juta",  label: "2 - 3 Juta" },
+  { value: "3 - 5 Juta",  label: "3 - 5 Juta" },
+  { value: "5 - 10 Juta", label: "5 - 10 Juta" },
+  { value: "> 10 Juta",   label: "> 10 Juta" },
+];
 
 export const LANGKAH = [
   {
@@ -76,7 +87,7 @@ export const RINCIAN = {
   Bekerja: {
     judul: "Detail pekerjaan",
     sub: "Ceritakan tempat dan bidang pekerjaanmu saat ini.",
-    wajib: ["namaPerusahaan", "bidangKerja"],
+    wajib: ["namaPerusahaan", "bidangKerja", "gaji"],
   },
   Wirausaha: {
     judul: "Detail usaha",
