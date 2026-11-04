@@ -55,6 +55,18 @@ const ICONS = {
       <path d="M12 2a10 10 0 100 20 10 10 0 000-20zm1 16h-2v-2h2v2zm1.800-7.400l-.9.900c-.7.700-.9 1.200-.9 2.500h-2v-.500c0-1 .3-1.900 1-2.600l1.200-1.300c.4-.3.600-.8.600-1.300 0-1.100-.9-2-2-2s-2 .9-2 2H8a4 4 0 118 0c0 .9-.4 1.700-1.200 2.300z" />
     </Svg>
   ),
+  code: (
+    <Svg
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <polyline points="16 18 22 12 16 6" />
+      <polyline points="8 6 2 12 8 18" />
+    </Svg>
+  ),
   login: (
     <Svg
       fill="none"

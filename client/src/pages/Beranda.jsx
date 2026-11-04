@@ -77,18 +77,36 @@ export default function Beranda() {
             setelah menyelesaikan pendidikan kejuruan.
           </p>
 
-          <div className="flex flex-col gap-3 lg:flex-row">
+          <div className="flex flex-col gap-3">
+            {/* Baris Tombol Utama */}
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <a
+                href="/survey"
+                className={`${btnSolid} flex-1 px-7 py-5 text-xl lg:px-9 lg:py-5.5 lg:text-xl`}
+              >
+                Mulai Survey <ArrowRight />
+              </a>
+              <a
+                href="/panduan"
+                className={`${btnOutline} flex-1 px-7 py-5 text-lg lg:px-9 lg:py-5.5 lg:text-xl`}
+              >
+                Lihat Panduan
+              </a>
+            </div>
+
+            {/* Tombol Meet Our Developers — Lebar sejajar penuh dari Mulai Survey sampai Lihat Panduan */}
             <a
-              href="/survey"
-              className={`${btnSolid} px-7 py-5.5 text-[22px] lg:px-9 lg:py-6 lg:text-xl`}
+              href="/about-developer"
+              className="group inline-flex w-full items-center justify-center gap-2.5 rounded-2xl border-2 border-[#1767a8]/30 bg-white/80 py-4 font-['Poppins',sans-serif] text-base font-semibold text-[#1767a8] shadow-sm backdrop-blur-sm transition-all duration-200 hover:border-[#1767a8] hover:bg-white hover:shadow-md lg:py-4.5 lg:text-lg"
             >
-              Mulai Survey <ArrowRight />
-            </a>
-            <a
-              href="/panduan"
-              className={`${btnOutline} p-5 text-lg lg:px-9 lg:py-6 lg:text-xl`}
-            >
-              Lihat Panduan
+              <span className="text-xl transition-transform group-hover:scale-110">👨‍💻</span>
+              <span>Meet Our Developers</span>
+              <span className="text-sm font-normal text-slate-500">
+                • Let's Connect With Us
+              </span>
+              <span className="text-base font-bold transition-transform group-hover:translate-x-1">
+                →
+              </span>
             </a>
           </div>
 
