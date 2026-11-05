@@ -1,6 +1,8 @@
 import React from "react";
 import fotoPalaguna from "../assets/team/Palaguna.jpeg";
 import fotoIqbal from "../assets/team/Iqbal.jpeg";
+import fotoUna from "../assets/team/Una.png";
+import fotoReno from "../assets/team/Reno.jpeg";
 import fotoawal from "../assets/team/image.png";
 /* ─── Data 10 Anggota Tim Pengembang PKM ───────────────────────── */
 const TIM_DEVELOPER = [
@@ -10,7 +12,7 @@ const TIM_DEVELOPER = [
     peran: "Ketua Kelompok, BackEnd Dev, Project Manager",
     nim: "241011400443",
     spesialisasi: "Project Management • Node.js Express • MySQL",
-    foto: fotoawal,
+    foto: fotoUna,
     kontak: {
       github: "https://github.com/palaguna1501",
       linkedin: "https://linkedin.com",
@@ -23,7 +25,7 @@ const TIM_DEVELOPER = [
     peran: "Wakil Ketua, FullStack Dev, ML-Engineer",
     nim: "Mahasiswa PKM",
     spesialisasi: "React.js • Node.js • Machine Learning",
-    foto: fotoawal,
+    foto: fotoReno,
     kontak: {
       github: "https://github.com",
       linkedin: "https://linkedin.com",
@@ -196,7 +198,7 @@ export default function AboutDeveloper() {
       {/* ─── HERO — Modern Minimalist ─────────────────────────────── */}
       <section className="relative overflow-hidden bg-white px-5 pt-16 pb-10 text-center sm:px-8 lg:px-10 lg:pt-20 lg:pb-12">
         {/* Dekorasi blob halus */}
-        <div className="pointer-events-none absolute -top-32 left-1/2 h-[480px] w-[480px] -translate-x-1/2 rounded-full bg-blue-50 blur-3xl opacity-70" />
+        <div className="pointer-events-none absolute -top-32 left-1/2 h-120 w-120 -translate-x-1/2 rounded-full bg-blue-50 blur-3xl opacity-70" />
 
         <div className="relative mx-auto max-w-3xl">
           {/* Eyebrow label kecil */}
@@ -331,7 +333,7 @@ export default function AboutDeveloper() {
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <a
               href="mailto:palaguna2006@gmail.com"
-              className="inline-flex h-12 items-center rounded-full bg-[#12294d] px-7 text-sm font-semibold text-white transition hover:bg-[#1769aa] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1769aa]"
+              className="inline-flex h-12 items-center rounded-full bg-[#12294d] px-7 text-sm font-semibold text-white transition hover:bg-[#1769aa] focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-[#1769aa]"
             >
               Kirim email ke tim
             </a>
