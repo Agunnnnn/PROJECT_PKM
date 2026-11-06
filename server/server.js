@@ -25,6 +25,12 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 
+// ─── Trust proxy (aktifkan saat di-deploy di balik Nginx/reverse proxy) ──────
+// Ini memastikan req.ip membaca IP asli client dari X-Forwarded-For dengan aman
+if (process.env.NODE_ENV === "production") {
+  app.set("trust proxy", 1);
+}
+
 // ─── Hardening Keamanan ──────────────────────────────────────────────────────
 app.disable("x-powered-by");
 app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));

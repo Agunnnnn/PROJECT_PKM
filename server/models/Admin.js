@@ -10,10 +10,10 @@ export const findAdminById = async (id) => {
   return rows[0];
 };
 
-export const createAdmin = async (username, hashedPassword) => {
+export const createAdmin = async (username, hashedPassword, role = "Administrator") => {
   const [result] = await pool.query(
-    "INSERT INTO admin (username, password) VALUES (?, ?)",
-    [username, hashedPassword]
+    "INSERT INTO admin (username, password, role) VALUES (?, ?, ?)",
+    [username, hashedPassword, role]
   );
   return { id: result.insertId, username };
 };
@@ -95,6 +95,18 @@ export const getAllAdmins = async () => {
 };
 
 export const deleteAdminById = async (id) => {
+  // Proteksi: SuperAdmin tidak boleh dihapus via query ini
+  const [rows] = await pool.query("SELECT role FROM admin WHERE id = ?", [id]);
+  if (rows[0]?.role === "SuperAdmin") {
+    throw new Error("SuperAdmin tidak dapat dihapus dari sistem");
+  }
   const [result] = await pool.query("DELETE FROM admin WHERE id = ?", [id]);
   return result.affectedRows > 0;
+};
+
+export const countSuperAdmins = async () => {
+  const [rows] = await pool.query(
+    "SELECT COUNT(*) AS total FROM admin WHERE role = 'SuperAdmin'"
+  );
+  return rows[0]?.total || 0;
 };

@@ -13,6 +13,7 @@ backup_pre_qa.sql
 # Pastikan file env tidak bocor
 .env
 server/.env
+client/.env
 
 # Jangan commit environment & globals postman yang berisi token
 postman/*environment*
