@@ -20,8 +20,6 @@ const btnOutline =
 const btnSolid =
   "h-[52px] rounded-xl bg-[#1767a8] px-6 font-['Poppins',sans-serif] text-[15px] font-semibold text-white transition-colors hover:bg-[#12558c] focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-[#8cc1ee]";
 
-const API_BASE_URL = "http://localhost:5000";
-
 const getFotoUrl = (foto) => {
   if (!foto) return null;
   if (
@@ -32,7 +30,11 @@ const getFotoUrl = (foto) => {
   ) {
     return foto;
   }
-  return `${API_BASE_URL}${foto.startsWith("/") ? "" : "/"}${foto}`;
+  const baseUrl = (api.defaults?.baseURL || "http://localhost:5000/api").replace(
+    /\/api\/?$/,
+    "",
+  );
+  return `${baseUrl}${foto.startsWith("/") ? "" : "/"}${foto}`;
 };
 
 /* ---------- Avatar ---------- */
