@@ -75,6 +75,7 @@ export default function App() {
 
         {/* Admin */}
         <Route element={<AdminLayout />}>
+          <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
           <Route path="/admin/dashboard" element={<Dashboard />} />
           <Route path="/admin/data" element={<DataAlumni />} />
           <Route path="/admin/data-alumni" element={<DataAlumni />} />
@@ -83,6 +84,9 @@ export default function App() {
           <Route path="/admin/profil" element={<ProfilAdmin />} />
           <Route path="/admin/tambah-akun" element={<TambahAkunAdmin />} />
         </Route>
+
+        {/* Fallback 404: Semua URL tidak dikenal diarahkan kembali ke Beranda */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   );

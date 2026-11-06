@@ -5,6 +5,7 @@ import logo from "../../assets/Logo.jpeg";
 const MENU = [
   { label: "Dashboard", to: "/admin/dashboard", icon: "grid" },
   { label: "Data Alumni", to: "/admin/data", icon: "users" },
+  { label: "Data Survey", to: "/admin/data-survey", icon: "survey" },
   { label: "Laporan", to: "/admin/laporan", icon: "report" },
   { label: "Kelola Admin", to: "/admin/tambah-akun", icon: "shield" },
   { label: "Profil Admin", to: "/admin/profil", icon: "user" },
@@ -40,6 +41,11 @@ const ICONS = {
       <path d="M3 20c0-3.300 2.700-6 6-6s6 2.700 6 6" />
       <circle cx="17" cy="9" r="2.500" />
       <path d="M17 14.200c2.400.3 4 2.200 4 4.800" />
+    </Svg>
+  ),
+  survey: (
+    <Svg>
+      <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
     </Svg>
   ),
   report: (

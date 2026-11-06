@@ -94,39 +94,54 @@ export default function Beranda() {
               </a>
             </div>
 
-            {/* Tombol Meet Our Developers — Lebar sejajar penuh dari Mulai Survey sampai Lihat Panduan */}
+            {/* Tombol Meet Our Developers — Responsif untuk semua ukuran HP & Layar */}
             <a
               href="/about-developer"
-              className="group inline-flex w-full items-center justify-center gap-2.5 rounded-2xl border-2 border-[#1767a8]/30 bg-white/80 py-4 font-['Poppins',sans-serif] text-base font-semibold text-[#1767a8] shadow-sm backdrop-blur-sm transition-all duration-200 hover:border-[#1767a8] hover:bg-white hover:shadow-md lg:py-4.5 lg:text-lg"
+              className="group flex w-full items-center justify-between rounded-2xl border-2 border-[#1767a8]/30 bg-white/90 px-4 py-3 font-['Poppins',sans-serif] text-[#1767a8] shadow-sm backdrop-blur-sm transition-all duration-200 hover:border-[#1767a8] hover:bg-white hover:shadow-md sm:px-6 sm:py-4"
             >
-              <span className="text-xl transition-transform group-hover:scale-110">👨‍💻</span>
-              <span>Meet Our Developers</span>
-              <span className="text-sm font-normal text-slate-500">
-                • Let's Connect With Us
-              </span>
-              <span className="text-base font-bold transition-transform group-hover:translate-x-1">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl transition-transform group-hover:scale-110">
+                  👨‍💻
+                </span>
+                <div className="text-left">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold sm:text-base lg:text-lg">
+                      Meet Our Developers
+                    </span>
+                    <span className="hidden text-xs font-normal text-slate-500 md:inline">
+                      • Let's Connect With Us
+                    </span>
+                  </div>
+                  <span className="block text-[11px] font-normal text-slate-500 md:hidden">
+                    Let's Connect With Us
+                  </span>
+                </div>
+              </div>
+              <span className="text-base font-bold transition-transform group-hover:translate-x-1 sm:text-lg">
                 →
               </span>
             </a>
           </div>
 
-          <div className="mt-8 grid grid-cols-2 gap-4 lg:mt-10">
+          <div className="mt-6 grid grid-cols-2 gap-3 sm:mt-8 sm:gap-4 lg:mt-10">
             {[
               { icon: <Clock />, title: "± 3 menit", desc: "Estimasi waktu" },
               { icon: <Shield />, title: "Aman", desc: "Data terlindungi" },
             ].map((f) => (
               <div
                 key={f.title}
-                className="flex items-center gap-3.5 rounded-[18px] border border-[#e6edf5] bg-white px-4 py-3.5"
+                className="flex items-center gap-2.5 rounded-2xl border border-[#e6edf5] bg-white p-3 shadow-xs transition hover:border-[#1767a8]/40 sm:gap-3.5 sm:p-4"
               >
-                <div className="grid h-13 w-13 flex-none place-items-center rounded-2xl bg-[#fff0d6] text-[#f5a623]">
+                <div className="flex h-10 w-10 flex-none items-center justify-center rounded-xl bg-[#fff0d6] text-[#f5a623] sm:h-12 sm:w-12 sm:rounded-2xl">
                   {f.icon}
                 </div>
-                <div>
-                  <strong className="block font-['Poppins',sans-serif] text-[17px] font-semibold">
+                <div className="min-w-0">
+                  <strong className="block whitespace-nowrap font-['Poppins',sans-serif] text-xs font-bold text-slate-800 sm:text-base">
                     {f.title}
                   </strong>
-                  <span className="text-[15px] text-[#5b7794]">{f.desc}</span>
+                  <span className="block whitespace-nowrap text-[11px] text-[#5b7794] sm:text-sm">
+                    {f.desc}
+                  </span>
                 </div>
               </div>
             ))}
