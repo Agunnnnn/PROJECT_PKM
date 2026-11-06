@@ -17,7 +17,6 @@ import AboutDeveloper from "./pages/AboutDeveloper";
 import FormSurvey from "./pages/survey/FormSurvey";
 import Login from "./pages/Login";
 import Dashboard from "./pages/admin/Dashboard";
-import DataSurvey from "./pages/admin/DataSurvey";
 import DataAlumni from "./pages/admin/DataAlumni";
 import Laporan from "./pages/admin/Laporan";
 import ProfilAdmin from "./pages/admin/ProfilAdmin";
@@ -79,7 +78,7 @@ export default function App() {
           <Route path="/admin/dashboard" element={<Dashboard />} />
           <Route path="/admin/data" element={<DataAlumni />} />
           <Route path="/admin/data-alumni" element={<DataAlumni />} />
-          <Route path="/admin/data-survey" element={<DataSurvey />} />
+          <Route path="/admin/data-survey" element={<Navigate to="/admin/data" replace />} />
           <Route path="/admin/laporan" element={<Laporan />} />
           <Route path="/admin/profil" element={<ProfilAdmin />} />
           <Route path="/admin/tambah-akun" element={<TambahAkunAdmin />} />

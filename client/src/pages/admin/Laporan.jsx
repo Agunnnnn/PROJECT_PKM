@@ -44,6 +44,9 @@ export default function Laporan() {
   const [laporan, setLaporan] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [exportError, setExportError] = useState("");
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const [isExportingExcel, setIsExportingExcel] = useState(false);
 
   // Muat daftar tahun dari database MySQL
   useEffect(() => {
@@ -85,6 +88,56 @@ export default function Laporan() {
       });
   }, [tahun]);
 
+  const handleExportPdf = async () => {
+    if (!tahun) return;
+    setExportError("");
+    setIsExportingPdf(true);
+    try {
+      const res = await api.get(`/survey/export/${tahun}`, {
+        responseType: "blob",
+      });
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `laporan-tracer-study-${tahun}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch {
+      setExportError(
+        `Gagal export PDF untuk tahun ${tahun}. Mungkin datanya kosong.`
+      );
+    } finally {
+      setIsExportingPdf(false);
+    }
+  };
+
+  const handleExportExcel = async () => {
+    if (!tahun) return;
+    setExportError("");
+    setIsExportingExcel(true);
+    try {
+      const res = await api.get(`/survey/export-excel/${tahun}`, {
+        responseType: "blob",
+      });
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `laporan-tracer-study-${tahun}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch {
+      setExportError(
+        `Gagal export Excel untuk tahun ${tahun}. Mungkin datanya kosong.`
+      );
+    } finally {
+      setIsExportingExcel(false);
+    }
+  };
+
   const totalAlumni = laporan?.totalAlumni || 0;
   const sudahMengisi = laporan?.sudahMengisi || 0;
   const belumMengisi = laporan?.belumMengisi || 0;
@@ -119,48 +172,82 @@ export default function Laporan() {
         </div>
       )}
 
-      {/* Filter periode */}
-      <Card className="flex items-center justify-between gap-4 px-5 py-4 lg:justify-start lg:gap-8 lg:px-9 lg:py-5">
-        <label
-          htmlFor="periode"
-          className="text-base text-[#5b7794] lg:font-['Poppins',sans-serif] lg:text-lg lg:font-semibold lg:text-[#12263f]"
-        >
-          Periode Laporan
-        </label>
-        <div className="relative">
-          <select
-            id="periode"
-            value={tahun}
-            onChange={(e) => setTahun(e.target.value)}
-            disabled={tahunList.length === 0}
-            className="h-11 w-36 cursor-pointer appearance-none rounded-xl border border-transparent bg-[#eef2f8] pl-4 pr-10 text-base font-semibold text-[#12263f] focus:border-[#1767a8] focus:outline-none focus:ring-4 focus:ring-[#1767a8]/15 lg:h-13 lg:w-62.5 lg:border-[#9fb3cf] lg:bg-white lg:pl-5 lg:text-xl lg:font-normal lg:text-[#5b7794]"
-          >
-            {tahunList.map((t) => (
-              <option key={t} value={t}>
-                Tahun Lulus {t}
-              </option>
-            ))}
-          </select>
-          <svg
-            className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[#5b7794]"
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.500"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M6 9l6 6 6-6" />
-          </svg>
+      {exportError && (
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          {exportError}
         </div>
-        {loading && (
-          <span className="text-xs text-[#5b7794] animate-pulse">
-            Memuat data...
-          </span>
-        )}
+      )}
+
+      {/* Filter periode & Export */}
+      <Card className="flex flex-col gap-4 px-5 py-4 sm:flex-row sm:items-center sm:justify-between lg:px-9 lg:py-5">
+        <div className="flex items-center gap-4 lg:gap-6">
+          <label
+            htmlFor="periode"
+            className="text-base text-[#5b7794] lg:font-['Poppins',sans-serif] lg:text-lg lg:font-semibold lg:text-[#12263f]"
+          >
+            Periode Laporan
+          </label>
+          <div className="relative">
+            <select
+              id="periode"
+              value={tahun}
+              onChange={(e) => setTahun(e.target.value)}
+              disabled={tahunList.length === 0}
+              className="h-11 w-36 cursor-pointer appearance-none rounded-xl border border-transparent bg-[#eef2f8] pl-4 pr-10 text-base font-semibold text-[#12263f] focus:border-[#1767a8] focus:outline-none focus:ring-4 focus:ring-[#1767a8]/15 lg:h-13 lg:w-62.5 lg:border-[#9fb3cf] lg:bg-white lg:pl-5 lg:text-xl lg:font-normal lg:text-[#5b7794]"
+            >
+              {tahunList.map((t) => (
+                <option key={t} value={t}>
+                  Tahun Lulus {t}
+                </option>
+              ))}
+            </select>
+            <svg
+              className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[#5b7794]"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.500"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M6 9l6 6 6-6" />
+            </svg>
+          </div>
+          {loading && (
+            <span className="text-xs text-[#5b7794] animate-pulse">
+              Memuat data...
+            </span>
+          )}
+        </div>
+
+        {/* Action Export Buttons */}
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={handleExportPdf}
+            disabled={!tahun || isExportingPdf}
+            className="inline-flex h-11 items-center gap-2 rounded-xl bg-red-600 px-4 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-50"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            {isExportingPdf ? "Membuat PDF..." : "Export ke PDF"}
+          </button>
+          <button
+            type="button"
+            onClick={handleExportExcel}
+            disabled={!tahun || isExportingExcel}
+            className="inline-flex h-11 items-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-50"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" />
+            </svg>
+            {isExportingExcel ? "Membuat Excel..." : "Export ke Excel"}
+          </button>
+        </div>
       </Card>
 
       {/* Kartu angka */}
