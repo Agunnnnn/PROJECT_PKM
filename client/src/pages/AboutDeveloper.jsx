@@ -24,7 +24,7 @@ const TIM_DEVELOPER = [
     foto: fotoUna,
     kontak: {
       github: "https://github.com/fortunayuliastuti0975-oss",
-      linkedin: "https://www.linkedin.com/in/fortuna-yuli-astuti",
+      linkedin: "https://www.linkedin.com/in/fortuna-yuli-astuti-7091b5408",
       email: "mailto:fortunayuliastuti0975@gmail.com",
     },
   },
@@ -36,9 +36,9 @@ const TIM_DEVELOPER = [
     spesialisasi: "React.js • Node.js • Machine Learning",
     foto: fotoReno,
     kontak: {
-      github: "https://github.com",
-      linkedin: "https://linkedin.com",
-      email: "mailto:developer@example.com",
+      github: "https://github.com/putrareno",
+      linkedin: "https://www.linkedin.com/in/putra-reno-a858b3449/",
+      email: "mailto:ptraarenoo@gmail.com",
     },
   },
   {
@@ -141,9 +141,9 @@ const TIM_DEVELOPER = [
     spesialisasi: "React.js • Vite • UI Implementation",
     foto: fotoBima,
     kontak: {
-      github: "https://github.com",
-      linkedin: "https://linkedin.com",
-      email: "mailto:developer@example.com",
+      github: "https://github.com/bimaarya6789-creator",
+      linkedin: "https://id.linkedin.com/in/bima-arya-ab9807449",
+      email: "mailto:bimaarya6789@gmail.com",
     },
   },
 ];
