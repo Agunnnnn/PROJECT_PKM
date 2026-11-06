@@ -51,7 +51,7 @@ export default function DataAlumni() {
     try {
       setLoading(true);
       setError("");
-      const res = await api.get("/survey");
+      const res = await api.get("/alumni");
       const formatData = (res.data || []).map((item) => {
         let aktivitas = "-";
         if (item.status_saat_ini === "Bekerja") {
@@ -64,8 +64,8 @@ export default function DataAlumni() {
           aktivitas = "Belum Bekerja";
         }
         return {
-          id: item.id,
-          alumniId: item.alumni_id,
+          id: item.survey_id || item.id,
+          alumniId: item.id,
           nama: item.nama || "-",
           nisn: item.nis || "-",
           jurusan: item.jurusan || "-",

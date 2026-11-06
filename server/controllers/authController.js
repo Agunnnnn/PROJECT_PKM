@@ -16,7 +16,10 @@ import {
   isUsernameExist,
   getAllAdmins,
   deleteAdminById,
+  countSuperAdmins,
 } from "../models/Admin.js";
+
+const VALID_ROLES = ["Administrator", "SuperAdmin"];
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -166,12 +169,23 @@ export const updateProfilAdmin = async (req, res, next) => {
       return res.status(400).json({ message: "Username wajib diisi" });
     }
 
-    // ✅ FIX SECURITY: Cegah privilege escalation (Test #6)
-    // Pengguna tidak diizinkan mengubah role mereka menjadi Superuser atau role lainnya
-    if (role && role.trim() !== "Administrator") {
-      return res.status(400).json({
-        message:
-          "Perubahan role tidak diizinkan. Privilege escalation ditolak.",
+    // Ambil role terkini dari DB — jadi acuan, bukan dari request body
+    const currentAdmin = await findAdminById(adminId);
+    if (!currentAdmin) {
+      return res.status(404).json({ message: "Akun admin tidak ditemukan" });
+    }
+
+    // SuperAdmin tidak boleh di-downgrade rolenya lewat edit profil
+    if (currentAdmin.role === "SuperAdmin" && role && role.trim() !== "SuperAdmin") {
+      return res.status(403).json({
+        message: "Role SuperAdmin tidak dapat diubah.",
+      });
+    }
+
+    // Administrator biasa tidak bisa eskalasi role sendiri ke SuperAdmin
+    if (currentAdmin.role !== "SuperAdmin" && role && role.trim() === "SuperAdmin") {
+      return res.status(403).json({
+        message: "Perubahan role tidak diizinkan. Privilege escalation ditolak.",
       });
     }
 
@@ -220,7 +234,7 @@ export const updateProfilAdmin = async (req, res, next) => {
       nama: nama?.trim() || username.trim(),
       email: email?.trim() || "",
       telepon: telepon?.trim() || "",
-      role: "Administrator", // Kunci role tetap Administrator
+      role: currentAdmin.role, // Kunci role sesuai DB, tidak bisa diubah sendiri
       foto: fotoBaru,
     });
 
@@ -306,6 +320,7 @@ export const tambahAkunAdmin = async (req, res, next) => {
     const rawPassword = (req.body || {}).password;
     const rawKonfirmasi = (req.body || {}).konfirmasiPassword;
     const rawNama = (req.body || {}).nama;
+    const rawRole = (req.body || {}).role;
 
     // Validasi tipe & kekosongan
     if (
@@ -349,6 +364,11 @@ export const tambahAkunAdmin = async (req, res, next) => {
         .json({ message: "Konfirmasi password tidak cocok" });
     }
 
+    // Validasi role — hanya nilai yang diizinkan, default ke Administrator
+    const roleBaru = rawRole && VALID_ROLES.includes(rawRole.trim())
+      ? rawRole.trim()
+      : "Administrator";
+
     // Cek username sudah terpakai
     const sudahAda = await isUsernameExist(username);
     if (sudahAda) {
@@ -360,23 +380,23 @@ export const tambahAkunAdmin = async (req, res, next) => {
     // Hash password sebelum disimpan
     const hashedPassword = await bcrypt.hash(rawPassword, 10);
 
-    // Simpan ke DB — role dikunci ke "Administrator" (tidak bisa diatur dari request)
-    const { id } = await createAdmin(username, hashedPassword);
+    // Simpan ke DB dengan role yang ditentukan
+    const { id } = await createAdmin(username, hashedPassword, roleBaru);
 
-    // Perbarui kolom nama setelah insert (createAdmin hanya set username & password)
+    // Perbarui kolom nama setelah insert jika berbeda dari username
     if (nama !== username) {
       await updateAdminProfile(id, {
         username,
         nama,
         email: "",
         telepon: "",
-        role: "Administrator",
+        role: roleBaru,
       });
     }
 
     return res.status(201).json({
       message: `Akun admin "${username}" berhasil dibuat`,
-      admin: { id, username, nama, role: "Administrator" },
+      admin: { id, username, nama, role: roleBaru },
     });
   } catch (error) {
     next(error);
@@ -414,6 +434,13 @@ export const hapusAkunAdmin = async (req, res, next) => {
     const target = await findAdminById(targetId);
     if (!target) {
       return res.status(404).json({ message: "Akun admin tidak ditemukan" });
+    }
+
+    // Proteksi: akun SuperAdmin tidak dapat dihapus oleh siapapun
+    if (target.role === "SuperAdmin") {
+      return res.status(403).json({
+        message: "Akun SuperAdmin tidak dapat dihapus dari sistem",
+      });
     }
 
     const berhasil = await deleteAdminById(targetId);

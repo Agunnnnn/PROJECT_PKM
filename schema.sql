@@ -21,7 +21,7 @@ CREATE TABLE `admin` (
   `nama` VARCHAR(100) DEFAULT NULL,
   `email` VARCHAR(100) DEFAULT NULL,
   `telepon` VARCHAR(20) DEFAULT NULL,
-  `role` VARCHAR(50) DEFAULT 'Administrator',
+  `role` ENUM('Administrator','SuperAdmin') DEFAULT 'Administrator',
   `foto` VARCHAR(255) DEFAULT NULL,
   `created_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),

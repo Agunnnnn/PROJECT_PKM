@@ -10,7 +10,7 @@ import {
   getDaftarAdmin,
   hapusAkunAdmin,
 } from "../controllers/authController.js";
-import { protect } from "../middleware/auth.js";
+import { protect, requireSuperAdmin } from "../middleware/auth.js";
 import { handleUploadFoto } from "../middleware/upload.js";
 import { rateLimitLogin } from "../middleware/rateLimiter.js";
 
@@ -24,9 +24,11 @@ router.put("/profil", protect, handleUploadFoto, updateProfilAdmin);
 router.post("/profil/foto", protect, handleUploadFoto, uploadFotoAdmin);
 router.delete("/profil/foto", protect, hapusFotoAdmin);
 
-// ─── Manajemen Akun Admin (hanya bisa diakses admin yang sudah login) ──────────
+// ─── Manajemen Akun Admin ──────────────────────────────────────────────────────
+// Semua admin bisa lihat daftar dan tambah akun baru
+// Hanya SuperAdmin yang bisa menghapus akun
 router.get("/admin-list", protect, getDaftarAdmin);
 router.post("/tambah-admin", protect, tambahAkunAdmin);
-router.delete("/hapus-admin/:id", protect, hapusAkunAdmin);
+router.delete("/hapus-admin/:id", protect, requireSuperAdmin, hapusAkunAdmin);
 
 export default router;

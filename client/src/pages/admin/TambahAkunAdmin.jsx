@@ -178,8 +178,9 @@ export default function TambahAkunAdmin() {
   const [adminYangDihapus, setAdminYangDihapus] = useState(null);
   const [loadingHapus, setLoadingHapus] = useState(false);
 
-  /* ── ID admin yang sedang login (untuk proteksi hapus diri sendiri) ── */
+  /* ── ID dan role admin yang sedang login ── */
   const [myAdminId, setMyAdminId] = useState(null);
+  const [myRole, setMyRole] = useState(null);
 
   /* ── Load daftar admin & profil diri sendiri ── */
   useEffect(() => {
@@ -206,6 +207,7 @@ export default function TambahAkunAdmin() {
     try {
       const res = await api.get("/auth/profil");
       setMyAdminId(res.data?.id);
+      setMyRole(res.data?.role);
     } catch {
       /* abaikan */
     }
@@ -455,9 +457,8 @@ export default function TambahAkunAdmin() {
 
           {/* Keterangan role */}
           <div className="mt-4 rounded-xl border border-[#dbeafe] bg-[#eff6ff] px-4 py-3 text-[14px] text-[#1e40af]">
-            <strong>Catatan:</strong> Role akun baru dikunci sebagai{" "}
-            <strong>Administrator</strong>. Tidak ada role yang lebih tinggi
-            yang bisa ditetapkan melalui form ini.
+            <strong>Catatan:</strong> Akun baru otomatis mendapat role <strong>Administrator</strong>.
+            Role <strong>SuperAdmin</strong> hanya ditetapkan secara manual oleh tim developer.
           </div>
 
           <div className="mt-6 flex justify-end gap-3">
@@ -591,7 +592,11 @@ export default function TambahAkunAdmin() {
 
                       {/* Role */}
                       <td className="py-3.5 pr-4">
-                        <span className="inline-block rounded-full bg-[#eff6ff] px-3 py-0.5 text-[13px] font-semibold text-[#1e40af]">
+                        <span className={`inline-block rounded-full px-3 py-0.5 text-[13px] font-semibold ${
+                          adm.role === "SuperAdmin"
+                            ? "bg-[#fef3c7] text-[#92400e]"
+                            : "bg-[#eff6ff] text-[#1e40af]"
+                        }`}>
                           {adm.role || "Administrator"}
                         </span>
                       </td>
@@ -603,8 +608,13 @@ export default function TambahAkunAdmin() {
 
                       {/* Tombol hapus */}
                       <td className="py-3.5 text-right">
-                        {isSelf ? (
-                          <span className="text-[13px] text-[#a0b0c5]">—</span>
+                        {isSelf || adm.role === "SuperAdmin" || myRole !== "SuperAdmin" ? (
+                          <span
+                            className="text-[13px] text-[#a0b0c5]"
+                            title={adm.role === "SuperAdmin" ? "SuperAdmin tidak dapat dihapus" : ""}
+                          >
+                            —
+                          </span>
                         ) : (
                           <button
                             type="button"

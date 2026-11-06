@@ -33,7 +33,7 @@ const migrate = async () => {
         await addColumnIfMissing("admin", "nama",       "VARCHAR(100) DEFAULT NULL");
         await addColumnIfMissing("admin", "email",      "VARCHAR(100) DEFAULT NULL");
         await addColumnIfMissing("admin", "telepon",    "VARCHAR(20) DEFAULT NULL");
-        await addColumnIfMissing("admin", "role",       "VARCHAR(50) DEFAULT 'Administrator'");
+        await addColumnIfMissing("admin", "role",       "ENUM('Administrator','SuperAdmin') DEFAULT 'Administrator'");
         await addColumnIfMissing("admin", "foto",       "VARCHAR(255) DEFAULT NULL");
         await addColumnIfMissing("admin", "status",     "VARCHAR(20) DEFAULT 'Aktif'");
         await addColumnIfMissing("admin", "last_login", "DATETIME DEFAULT NULL");

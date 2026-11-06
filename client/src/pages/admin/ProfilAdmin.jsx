@@ -585,7 +585,12 @@ export default function Profil() {
           ...prev,
           ...res.data,
           status: "Aktif",
-          terakhirLogin: prev.terakhirLogin,
+          terakhirLogin: res.data?.last_login
+            ? new Date(res.data.last_login).toLocaleString("id-ID", {
+                day: "numeric", month: "long", year: "numeric",
+                hour: "2-digit", minute: "2-digit",
+              })
+            : "-",
           foto: res.data?.foto || null,
         }));
       } catch (err) {
