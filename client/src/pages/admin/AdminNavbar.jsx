@@ -5,7 +5,6 @@ import logo from "../../assets/Logo.jpeg";
 const MENU = [
   { label: "Dashboard", to: "/admin/dashboard", icon: "grid" },
   { label: "Data Alumni", to: "/admin/data", icon: "users" },
-  { label: "Data Survey", to: "/admin/data-survey", icon: "survey" },
   { label: "Laporan", to: "/admin/laporan", icon: "report" },
   { label: "Kelola Admin", to: "/admin/tambah-akun", icon: "shield" },
   { label: "Profil Admin", to: "/admin/profil", icon: "user" },
