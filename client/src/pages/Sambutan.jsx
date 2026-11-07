@@ -1,4 +1,6 @@
 import React from "react";
+import fotoKepsekBawaan from "../assets/KepSek.png";
+import logoSmk from "../assets/Logo.jpeg";
 
 /* ===================== IKON ORANG (lingkaran biru) ===================== */
 function IkonOrang({ className = "" }) {
@@ -56,7 +58,7 @@ export default function SambutanKepalaSekolah({
   sekolah = "SMK Puspita Bangsa",
   sambutan = "Setiap kabar darimu membantu adik kelasmu mendapat pendidikan yang lebih tepat sasaran. Terima kasih sudah meluangkan waktu untuk mengisi survei ini.",
   tandaTangan = "Kepala SMK Puspita Bangsa",
-  foto, // opsional: URL gambar. Jika kosong, ilustrasi bawaan dipakai.
+  foto = fotoKepsekBawaan,
 }) {
   return (
     <section
@@ -71,9 +73,13 @@ export default function SambutanKepalaSekolah({
         <article className="mt-4 grid gap-6 rounded-2xl bg-white p-6 shadow-[0_4px_14px_rgba(15,26,36,0.12)] sm:p-8 lg:grid-cols-[1fr_auto] lg:gap-x-16 lg:gap-y-6">
           {/* 1. Identitas (mobile: paling atas) */}
           <div className="flex items-center gap-4 lg:col-start-1 lg:row-start-1 lg:self-end">
-            <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[#1769aa] text-white sm:h-16 sm:w-16">
-              <IkonOrang className="h-7 w-7 sm:h-8 sm:w-8" />
-            </span>
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-white p-1 shadow-sm sm:h-16 sm:w-16">
+              <img
+                src={logoSmk}
+                alt="Logo SMK Puspita Bangsa"
+                className="h-full w-full object-contain"
+              />
+            </div>
             <div>
               <h3 className="text-xl font-bold text-[#0f1a24] sm:text-2xl">
                 {nama}
@@ -83,12 +89,13 @@ export default function SambutanKepalaSekolah({
           </div>
 
           {/* 2. Foto (mobile: di tengah, di bawah identitas) */}
-          <div className="mx-auto h-44 w-44 overflow-hidden rounded-lg border border-slate-200 bg-white p-2 shadow-[0_3px_10px_rgba(15,26,36,0.18)] sm:h-56 sm:w-56 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:mr-10 lg:h-64 lg:w-64 lg:self-center">
+          <div className="mx-auto h-52 w-52 overflow-hidden rounded-2xl border border-slate-200 bg-white p-2 shadow-[0_3px_10px_rgba(15,26,36,0.14)] sm:h-60 sm:w-60 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:mr-8 lg:h-68 lg:w-68 lg:self-center">
             {foto ? (
               <img
                 src={foto}
                 alt={`Foto ${nama}`}
-                className="h-full w-full rounded object-cover"
+                className="h-full w-full rounded-xl object-cover object-top"
+                decoding="async"
               />
             ) : (
               <IlustrasiAvatar />
