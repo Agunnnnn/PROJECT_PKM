@@ -633,9 +633,11 @@ export default function Profil() {
         headers: { "Content-Type": "multipart/form-data" },
       });
       const fotoUrl = res.data?.foto || res.data?.profil?.foto;
+      // Tambahkan cache-buster agar browser tidak pakai foto lama dari cache
+      const fotoDenganTimestamp = fotoUrl ? `${fotoUrl}?t=${Date.now()}` : fotoUrl;
       setProfil((prev) => ({
         ...prev,
-        foto: fotoUrl,
+        foto: fotoDenganTimestamp,
       }));
       tampilPesan("Foto profil berhasil diperbarui!");
     } catch (err) {
@@ -687,12 +689,15 @@ export default function Profil() {
       });
 
       const profilTerbaru = res.data?.profil || dataBaru;
+      // Tambahkan cache-buster pada foto agar browser tidak pakai cache foto lama
+      const fotoResult = profilTerbaru.foto !== undefined ? profilTerbaru.foto : null;
+      const fotoDenganTimestamp = fotoResult ? `${fotoResult.split("?")[0]}?t=${Date.now()}` : fotoResult;
       setProfil((prev) => ({
         ...prev,
         ...profilTerbaru,
         status: "Aktif",
         terakhirLogin: prev.terakhirLogin,
-        foto: profilTerbaru.foto !== undefined ? profilTerbaru.foto : prev.foto,
+        foto: profilTerbaru.foto !== undefined ? fotoDenganTimestamp : prev.foto,
       }));
 
       // Update localStorage agar konsisten dengan username baru

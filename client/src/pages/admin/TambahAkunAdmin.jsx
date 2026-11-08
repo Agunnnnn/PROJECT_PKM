@@ -2,6 +2,24 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import api from "../../api/axios";
 
+/* ---------- Helper: resolusi URL foto (sama seperti ProfilAdmin) ---------- */
+const getFotoUrl = (foto) => {
+  if (!foto) return null;
+  if (
+    foto.startsWith("http://") ||
+    foto.startsWith("https://") ||
+    foto.startsWith("blob:") ||
+    foto.startsWith("data:")
+  ) {
+    return foto;
+  }
+  const baseUrl = (api.defaults?.baseURL || "http://localhost:5000/api").replace(
+    /\/api\/?$/,
+    "",
+  );
+  return `${baseUrl}${foto.startsWith("/") ? "" : "/"}${foto}`;
+};
+
 /* ---------- Gaya bersama (konsisten dengan ProfilAdmin) ---------- */
 const card = "rounded-3xl border border-[#d9e6f5] bg-white";
 const labelCls = "mb-2 block text-[15px] font-semibold font-['Poppins',sans-serif] text-[#12263f]";
@@ -86,6 +104,33 @@ const inisial = (nama) =>
     .slice(0, 2)
     .map((k) => k[0].toUpperCase())
     .join("");
+
+/* ---------- Avatar admin kecil (support foto + fallback inisial) ---------- */
+const AdminAvatar = ({ foto, nama }) => {
+  const [imgError, setImgError] = useState(false);
+  const url = getFotoUrl(foto);
+
+  useEffect(() => {
+    setImgError(false);
+  }, [foto]);
+
+  if (url && !imgError) {
+    return (
+      <img
+        src={url}
+        alt={`Foto ${nama}`}
+        className="h-9 w-9 flex-none rounded-full object-cover"
+        onError={() => setImgError(true)}
+      />
+    );
+  }
+
+  return (
+    <div className="grid h-9 w-9 flex-none place-items-center rounded-full bg-[#e0e7ff] font-['Poppins',sans-serif] text-[13px] font-bold text-[#1767a8]">
+      {inisial(nama)}
+    </div>
+  );
+};
 
 /* ---------- Modal Konfirmasi Hapus ---------- */
 function ModalKonfirmasiHapus({ admin, onBatal, onKonfirmasi, loading }) {
@@ -562,9 +607,7 @@ export default function TambahAkunAdmin() {
                       {/* Avatar + Nama */}
                       <td className="py-3.5 pr-4">
                         <div className="flex items-center gap-3">
-                          <div className="grid h-9 w-9 flex-none place-items-center rounded-full bg-[#e0e7ff] font-['Poppins',sans-serif] text-[13px] font-bold text-[#1767a8]">
-                            {inisial(adm.nama || adm.username)}
-                          </div>
+                          <AdminAvatar foto={adm.foto} nama={adm.nama || adm.username} />
                           <div>
                             <div className="font-semibold text-[#12263f]">
                               {adm.nama || adm.username}
