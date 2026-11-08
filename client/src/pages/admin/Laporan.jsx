@@ -88,6 +88,21 @@ export default function Laporan() {
       });
   }, [tahun]);
 
+  // Helper: baca error message dari blob response (server kirim JSON tapi responseType blob)
+  const bacaPesanError = async (err) => {
+    try {
+      const blob = err?.response?.data;
+      if (blob instanceof Blob && blob.type?.includes("application/json")) {
+        const text = await blob.text();
+        const json = JSON.parse(text);
+        return json?.message || null;
+      }
+    } catch {
+      /* abaikan */
+    }
+    return null;
+  };
+
   const handleExportPdf = async () => {
     if (!tahun) return;
     setExportError("");
@@ -104,9 +119,10 @@ export default function Laporan() {
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
-    } catch {
+    } catch (err) {
+      const pesanServer = await bacaPesanError(err);
       setExportError(
-        `Gagal export PDF untuk tahun ${tahun}. Mungkin datanya kosong.`
+        pesanServer || `Gagal export PDF untuk tahun ${tahun}. Mungkin datanya kosong.`
       );
     } finally {
       setIsExportingPdf(false);
@@ -129,9 +145,10 @@ export default function Laporan() {
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
-    } catch {
+    } catch (err) {
+      const pesanServer = await bacaPesanError(err);
       setExportError(
-        `Gagal export Excel untuk tahun ${tahun}. Mungkin datanya kosong.`
+        pesanServer || `Gagal export Excel untuk tahun ${tahun}. Mungkin datanya kosong.`
       );
     } finally {
       setIsExportingExcel(false);
