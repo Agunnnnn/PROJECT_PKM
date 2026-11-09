@@ -14,6 +14,7 @@ import {
   getAlumniWithSurvey,
   getAlumniWithSurveyPaginated,
   getAlumniDetailById,
+  verifikasiAlumni,
 } from "../models/Alumni.js";
 import { upsertSurveyByAlumniId } from "../models/Survey.js";
 
@@ -23,20 +24,20 @@ const norm = (str) =>
     .toLowerCase()
     .replace(/[\s_\-/]/g, "");
 
-// ─── Temukan atau Buat Alumni (dipakai form survei publik) ───────────────────
+// ─── Temukan Alumni (dipakai form survei publik setelah verifikasi) ───────────
+// Tidak lagi membuat alumni baru — alumni hanya bisa ditambah admin via import Excel
 export const findOrCreateAlumni = async (req, res, next) => {
   try {
-    const { nis, nama, jurusan, tahunLulus, email, noHp } = req.body;
+    const { nis } = req.body;
 
-    let alumni = await findAlumniByNis(nis);
+    if (!nis) {
+      return res.status(400).json({ message: "NIS wajib diisi." });
+    }
+
+    const alumni = await findAlumniByNis(nis.trim());
     if (!alumni) {
-      alumni = await createAlumni({
-        nis,
-        nama,
-        jurusan,
-        tahunLulus,
-        email,
-        noHp,
+      return res.status(404).json({
+        message: "Data alumni tidak ditemukan. Pastikan NIS sudah terdaftar.",
       });
     }
 
@@ -46,10 +47,57 @@ export const findOrCreateAlumni = async (req, res, next) => {
   }
 };
 
+// ─── Verifikasi Identitas Alumni (NISN + Tanggal Lahir format DDMMYY) ────────
+// Endpoint publik — dipanggil di Step 1 form survei sebelum alumni boleh lanjut
+export const verifikasiAlumniHandler = async (req, res, next) => {
+  try {
+    const { nis, tanggalLahir } = req.body;
+
+    if (!nis || !tanggalLahir) {
+      return res.status(400).json({
+        message: "NIS/NISN dan tanggal lahir wajib diisi.",
+        valid: false,
+      });
+    }
+
+    // Format tanggal lahir harus 6 digit angka (DDMMYY)
+    const tglClean = String(tanggalLahir).replace(/\D/g, "");
+    if (tglClean.length !== 6) {
+      return res.status(400).json({
+        message: "Format tanggal lahir tidak valid. Gunakan format DDMMYY (contoh: 150106).",
+        valid: false,
+      });
+    }
+
+    const alumni = await verifikasiAlumni(nis.trim(), tglClean);
+
+    if (!alumni) {
+      return res.status(401).json({
+        message: "NIS/NISN atau tanggal lahir tidak sesuai. Periksa kembali data Anda.",
+        valid: false,
+      });
+    }
+
+    // Kembalikan data alumni (tanpa tanggal_lahir) untuk dipakai form
+    res.json({
+      valid: true,
+      alumni: {
+        id: alumni.id,
+        nis: alumni.nis,
+        nama: alumni.nama,
+        jurusan: alumni.jurusan,
+        tahunLulus: alumni.tahun_lulus,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // ─── Tambah Alumni Manual (admin) ────────────────────────────────────────────
 export const tambahAlumni = async (req, res, next) => {
   try {
-    const { nis, nama, jurusan, tahunLulus, email, noHp } = req.body;
+    const { nis, nama, jurusan, tahunLulus, email, noHp, tanggalLahir } = req.body;
 
     if (!nis || !nama || !jurusan || !tahunLulus) {
       return res
@@ -71,6 +119,7 @@ export const tambahAlumni = async (req, res, next) => {
       tahunLulus: Number(tahunLulus),
       email: email?.trim() || null,
       noHp: noHp?.trim() || null,
+      tanggalLahir: tanggalLahir?.trim() || null,
     });
 
     res.status(201).json({ message: "Alumni berhasil ditambahkan.", alumni });
@@ -83,7 +132,7 @@ export const tambahAlumni = async (req, res, next) => {
 export const editAlumni = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { nis, nama, jurusan, tahunLulus, email, noHp } = req.body;
+    const { nis, nama, jurusan, tahunLulus, email, noHp, tanggalLahir } = req.body;
 
     if (!nis || !nama || !jurusan || !tahunLulus) {
       return res
@@ -110,6 +159,7 @@ export const editAlumni = async (req, res, next) => {
       tahunLulus: Number(tahunLulus),
       email: email?.trim() || null,
       noHp: noHp?.trim() || null,
+      tanggalLahir: tanggalLahir?.trim() || null,
     });
 
     res.json({ message: "Data alumni berhasil diperbarui." });
@@ -284,6 +334,42 @@ export const importAlumniExcel = async (req, res, next) => {
       // Bersihkan noHp jika ada format ilmiah/spasi
       const noHp = noHpRaw ? String(noHpRaw).replace(/[^\d+]/g, "").trim() : null;
 
+      // Tanggal lahir — baca dari kolom "Tanggal Lahir" atau "tgllahir" di Dapodik
+      // Format di Excel biasanya YYYY-MM-DD atau Date object dari ExcelJS
+      const tglLahirRaw =
+        getCel(row, "tanggallahir") ||
+        getCel(row, "tgllahir") ||
+        getCel(row, "tgl.lahir") ||
+        getCel(row, "tanggal lahir");
+
+      let tanggalLahir = null;
+      if (tglLahirRaw) {
+        // ExcelJS bisa mengembalikan Date object atau string berbagai format
+        // Gunakan string parsing langsung agar tidak terpengaruh timezone server
+        if (tglLahirRaw instanceof Date) {
+          // Date object dari ExcelJS — pakai local methods karena ExcelJS sudah handle timezone
+          const d = tglLahirRaw;
+          const yyyy = d.getFullYear();
+          const mm = String(d.getMonth() + 1).padStart(2, "0");
+          const dd = String(d.getDate()).padStart(2, "0");
+          tanggalLahir = `${yyyy}-${mm}-${dd}`;
+        } else {
+          // String — coba ekstrak YYYY-MM-DD langsung tanpa new Date()
+          const tglStr = String(tglLahirRaw).trim();
+          // Format YYYY-MM-DD (paling umum dari Dapodik)
+          const matchISO = tglStr.match(/^(\d{4})-(\d{2})-(\d{2})/);
+          if (matchISO) {
+            tanggalLahir = `${matchISO[1]}-${matchISO[2]}-${matchISO[3]}`;
+          } else {
+            // Format DD/MM/YYYY atau DD-MM-YYYY
+            const matchDMY = tglStr.match(/^(\d{2})[\/\-](\d{2})[\/\-](\d{4})/);
+            if (matchDMY) {
+              tanggalLahir = `${matchDMY[3]}-${matchDMY[2]}-${matchDMY[1]}`;
+            }
+          }
+        }
+      }
+
       const rowErrors = [];
 
       if (!nisRaw) rowErrors.push("NIS / NISN kosong");
@@ -318,6 +404,7 @@ export const importAlumniExcel = async (req, res, next) => {
         tahunLulus: tahunNum,
         email: email ? String(email).trim() : null,
         noHp: noHp || null,
+        tanggalLahir: tanggalLahir || null,
       });
     });
 

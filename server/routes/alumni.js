@@ -1,6 +1,7 @@
 import express from "express";
 import {
   findOrCreateAlumni,
+  verifikasiAlumniHandler,
   tambahAlumni,
   editAlumni,
   hapusAlumni,
@@ -20,9 +21,10 @@ const router = express.Router();
 
 // ─── Publik (dipakai form survei alumni) ──────────────────────────────────────
 router.get("/jurusan-list", getJurusanList);
-router.get("/tahun-list", getTahunList); // semua tahun unik dari DB
+router.get("/tahun-list", getTahunList);
 router.get("/tahun-by-jurusan", getTahunByJurusan);
 router.get("/search", searchAlumni);
+router.post("/verifikasi", verifikasiAlumniHandler); // verifikasi NISN + tanggal lahir
 router.post("/", findOrCreateAlumni); // form survei publik (find-or-create)
 
 // ─── Admin only ───────────────────────────────────────────────────────────────

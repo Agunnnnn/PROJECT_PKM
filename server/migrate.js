@@ -39,6 +39,14 @@ const migrate = async () => {
         await addColumnIfMissing("admin", "last_login", "DATETIME DEFAULT NULL");
         await addColumnIfMissing("admin", "created_at", "TIMESTAMP DEFAULT CURRENT_TIMESTAMP");
 
+        // ─── Tabel: alumni ───────────────────────────────────────────────────
+        console.log("\n📋 Tabel: alumni");
+        await addColumnIfMissing(
+            "alumni",
+            "tanggal_lahir",
+            "DATE DEFAULT NULL COMMENT 'Tanggal lahir alumni, digunakan sebagai verifikasi identitas saat mengisi survei'"
+        );
+
         // ─── Tabel: survey ───────────────────────────────────────────────────
         console.log("\n📋 Tabel: survey");
         await addColumnIfMissing(
