@@ -37,6 +37,7 @@ export default function FormSurvey() {
   const [step, setStep] = useState(1);
   const [rincian, setRincian] = useState(false); // true = sedang di halaman rincian (langkah 2)
   const [form, setForm] = useState(initialForm);
+  const [sudahVerifikasi, setSudahVerifikasi] = useState(false); // flag verifikasi identitas
   const [hasil, setHasil] = useState(null);
   const [analisisKey, setAnalisisKey] = useState("");
   const [loadingHasil, setLoadingHasil] = useState(false);
@@ -119,7 +120,7 @@ export default function FormSurvey() {
 
   const valid =
     step === 1
-      ? !!form.nama
+      ? sudahVerifikasi && !!form.nama
       : step === 2 && !rincian
         ? !!status
         : step === 2 && rincian
@@ -214,7 +215,7 @@ export default function FormSurvey() {
       {/* ===== Kartu langkah ===== */}
       <div className="relative mx-auto -mt-14 max-w-6xl px-4 pb-16 lg:px-6">
         <div className="rounded-[28px] bg-white p-5 shadow-[0_12px_40px_rgba(23,103,168,0.12)] lg:rounded-4xl lg:p-8">
-          {step === 1 && <StepDataDiri form={form} setForm={setForm} />}
+          {step === 1 && <StepDataDiri form={form} setForm={setForm} onVerifikasi={setSudahVerifikasi} />}
           {step === 2 && !rincian && (
             <StepStatus value={status} onPilih={pilihStatus} />
           )}

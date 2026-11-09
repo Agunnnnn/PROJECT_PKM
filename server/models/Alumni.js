@@ -14,12 +14,13 @@ export const createAlumni = async ({
     tahunLulus,
     email,
     noHp,
+    tanggalLahir,
 }) => {
     const [result] = await pool.query(
-        "INSERT INTO alumni (nis, nama, jurusan, tahun_lulus, email, no_hp) VALUES (?, ?, ?, ?, ?, ?)",
-        [nis, nama, jurusan, tahunLulus, email || null, noHp || null],
+        "INSERT INTO alumni (nis, nama, jurusan, tahun_lulus, email, no_hp, tanggal_lahir) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        [nis, nama, jurusan, tahunLulus, email || null, noHp || null, tanggalLahir || null],
     );
-    return { id: result.insertId, nis, nama, jurusan, tahunLulus, email, noHp };
+    return { id: result.insertId, nis, nama, jurusan, tahunLulus, email, noHp, tanggalLahir };
 };
 
 export const getAllAlumni = async () => {
@@ -216,10 +217,10 @@ export const getAlumniDetailById = async (id) => {
     return rows[0];
 };
 
-export const updateAlumni = async (id, { nis, nama, jurusan, tahunLulus, email, noHp }) => {
+export const updateAlumni = async (id, { nis, nama, jurusan, tahunLulus, email, noHp, tanggalLahir }) => {
     const [result] = await pool.query(
-        "UPDATE alumni SET nis = ?, nama = ?, jurusan = ?, tahun_lulus = ?, email = ?, no_hp = ? WHERE id = ?",
-        [nis, nama, jurusan, tahunLulus, email || null, noHp || null, id],
+        "UPDATE alumni SET nis = ?, nama = ?, jurusan = ?, tahun_lulus = ?, email = ?, no_hp = ?, tanggal_lahir = ? WHERE id = ?",
+        [nis, nama, jurusan, tahunLulus, email || null, noHp || null, tanggalLahir || null, id],
     );
     return result.affectedRows > 0;
 };
@@ -257,16 +258,36 @@ export const bulkInsertAlumni = async (rows) => {
         const skippedDetail = [];
 
         for (const r of rows) {
-            const [existing] = await conn.query("SELECT id FROM alumni WHERE nis = ?", [r.nis]);
+            const [existing] = await conn.query("SELECT id, tanggal_lahir FROM alumni WHERE nis = ?", [r.nis]);
             if (existing && existing.length > 0) {
+                // Update tanggal_lahir jika sebelumnya NULL dan sekarang ada datanya
+                if (r.tanggalLahir && !existing[0].tanggal_lahir) {
+                    await conn.query(
+                        "UPDATE alumni SET tanggal_lahir = ? WHERE nis = ? AND tanggal_lahir IS NULL",
+                        [r.tanggalLahir, r.nis]
+                    );
+                }
                 skipped++;
                 skippedDetail.push(`NIS ${r.nis} (${r.nama}) sudah terdaftar`);
                 continue;
             }
-            await conn.query(
-                "INSERT INTO alumni (nis, nama, jurusan, tahun_lulus, email, no_hp) VALUES (?, ?, ?, ?, ?, ?)",
-                [r.nis, r.nama, r.jurusan, r.tahunLulus, r.email || null, r.noHp || null],
-            );
+            // Cek apakah kolom tanggal_lahir sudah ada di tabel (aman jika migrasi belum jalan)
+            try {
+                await conn.query(
+                    "INSERT INTO alumni (nis, nama, jurusan, tahun_lulus, email, no_hp, tanggal_lahir) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                    [r.nis, r.nama, r.jurusan, r.tahunLulus, r.email || null, r.noHp || null, r.tanggalLahir || null],
+                );
+            } catch (insertErr) {
+                // Fallback: jika kolom tanggal_lahir belum ada, insert tanpa kolom itu
+                if (insertErr.code === "ER_BAD_FIELD_ERROR") {
+                    await conn.query(
+                        "INSERT INTO alumni (nis, nama, jurusan, tahun_lulus, email, no_hp) VALUES (?, ?, ?, ?, ?, ?)",
+                        [r.nis, r.nama, r.jurusan, r.tahunLulus, r.email || null, r.noHp || null],
+                    );
+                } else {
+                    throw insertErr;
+                }
+            }
             inserted++;
         }
 
@@ -278,5 +299,34 @@ export const bulkInsertAlumni = async (rows) => {
     } finally {
         conn.release();
     }
+};
+
+// Verifikasi identitas alumni: cocokkan NIS + tanggal lahir format DDMMYY
+// Dipakai oleh form survei publik sebelum alumni boleh mengisi
+export const verifikasiAlumni = async (nis, tanggalLahirInput) => {
+    const [rows] = await pool.query(
+        "SELECT id, nis, nama, jurusan, tahun_lulus, tanggal_lahir FROM alumni WHERE nis = ?",
+        [nis.trim()]
+    );
+    const alumni = rows[0];
+    if (!alumni) return null;
+
+    // Jika alumni tidak punya tanggal lahir di DB, lewati verifikasi (data lama)
+    if (!alumni.tanggal_lahir) return alumni;
+
+    // Konversi tanggal lahir DB ke format DDMMYY
+    // MySQL bisa return Date object atau string YYYY-MM-DD
+    // Pakai string parsing langsung agar tidak terpengaruh timezone
+    const tglStr = alumni.tanggal_lahir instanceof Date
+        ? `${alumni.tanggal_lahir.getFullYear()}-${String(alumni.tanggal_lahir.getMonth()+1).padStart(2,"0")}-${String(alumni.tanggal_lahir.getDate()).padStart(2,"0")}`
+        : String(alumni.tanggal_lahir).slice(0, 10);
+
+    // tglStr sekarang pasti "YYYY-MM-DD"
+    const [yyyy, mm, dd] = tglStr.split("-");
+    const yy = yyyy.slice(-2);
+    const ddmmyy = `${dd}${mm}${yy}`;
+
+    if (tanggalLahirInput.trim() !== ddmmyy) return null;
+    return alumni;
 };
 
