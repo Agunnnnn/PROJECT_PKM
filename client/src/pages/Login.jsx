@@ -70,11 +70,16 @@ export default function Login() {
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  // Pastikan form selalu mulai dalam keadaan kosong saat halaman dibuka
+  // Redirect ke dashboard jika sudah login
   useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      navigate("/admin/dashboard", { replace: true });
+      return;
+    }
     setUsername("");
     setPassword("");
-  }, []);
+  }, [navigate]);
 
   const isUserFloating = userFocused || username.length > 0;
   const isPassFloating = passFocused || password.length > 0;

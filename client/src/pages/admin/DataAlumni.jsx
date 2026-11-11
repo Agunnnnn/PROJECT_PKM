@@ -64,7 +64,8 @@ export default function DataAlumni() {
           aktivitas = "Belum Bekerja";
         }
         return {
-          id: item.survey_id || item.id,
+          id: item.id,
+          surveyId: item.survey_id || null,
           alumniId: item.id,
           nama: item.nama || "-",
           nisn: item.nis || "-",
@@ -168,7 +169,7 @@ export default function DataAlumni() {
       const alumniId = alumni.alumniId ?? alumni.id;
       await api.delete(`/alumni/${alumniId}`);
       setPesan(`Data alumni "${alumni.nama}" berhasil dihapus.`);
-      setDaftar((d) => d.filter((x) => x.alumniId !== alumniId && x.id !== alumni.id));
+      setDaftar((d) => d.filter((x) => (x.alumniId ?? x.id) !== alumniId));
     } catch (err) {
       setError(err.response?.data?.message || "Gagal menghapus data alumni.");
     }
@@ -206,10 +207,21 @@ export default function DataAlumni() {
 
   const tampil = useMemo(
     () => daftar.filter(
-      (a) =>
-        a.nama.toLowerCase().includes(cari.trim().toLowerCase()) &&
-        (jurusan === "Semua" || a.jurusan === jurusan) &&
-        (tahun === "Semua" || String(a.tahun) === String(tahun)),
+      (a) => {
+        const keyword = cari.trim().toLowerCase();
+        if (!keyword) return (
+          (jurusan === "Semua" || a.jurusan === jurusan) &&
+          (tahun === "Semua" || String(a.tahun) === String(tahun))
+        );
+        // Cari hanya di nama dan nisn, tidak di field lain
+        const cocokNama = (a.nama || "").toLowerCase().includes(keyword);
+        const cocokNisn = (a.nisn || "").toLowerCase().includes(keyword);
+        return (
+          (cocokNama || cocokNisn) &&
+          (jurusan === "Semua" || a.jurusan === jurusan) &&
+          (tahun === "Semua" || String(a.tahun) === String(tahun))
+        );
+      }
     ),
     [daftar, cari, jurusan, tahun],
   );

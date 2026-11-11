@@ -708,11 +708,13 @@ export default function Profil() {
       setEdit(false);
       tampilPesan("Profil berhasil diperbarui.");
     } catch (err) {
-      setEdit(false);
+      // Jangan tutup modal — biarkan user perbaiki input
       tampilPesan(
         err.response?.data?.message || "Gagal menyimpan profil.",
         "error"
       );
+      // Re-throw agar ModalEdit bisa tangkap dan tampilkan error di dalam modal
+      throw err;
     }
   };
 
