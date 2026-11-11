@@ -365,9 +365,17 @@ export const tambahAkunAdmin = async (req, res, next) => {
     }
 
     // Validasi role — hanya nilai yang diizinkan, default ke Administrator
-    const roleBaru = rawRole && VALID_ROLES.includes(rawRole.trim())
-      ? rawRole.trim()
-      : "Administrator";
+    // Admin biasa TIDAK bisa buat akun SuperAdmin — hanya SuperAdmin yang boleh
+    const requestorRole = req.admin?.role || "Administrator";
+    let roleBaru = "Administrator"; // default selalu Administrator
+    if (rawRole && VALID_ROLES.includes(rawRole.trim())) {
+      if (rawRole.trim() === "SuperAdmin" && requestorRole !== "SuperAdmin") {
+        return res.status(403).json({
+          message: "Hanya SuperAdmin yang dapat membuat akun dengan role SuperAdmin.",
+        });
+      }
+      roleBaru = rawRole.trim();
+    }
 
     // Cek username sudah terpakai
     const sudahAda = await isUsernameExist(username);
