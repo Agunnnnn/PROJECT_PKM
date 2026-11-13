@@ -45,7 +45,7 @@ export default function StepDataDiri({ form, setForm, onVerifikasi }) {
   const handleVerifikasi = async (e) => {
     e.preventDefault();
     if (!nisInput || !tglLahirInput) {
-      return setErrorVerif("NIS/NISN dan tanggal lahir wajib diisi.");
+      return setErrorVerif("NISN dan tanggal lahir wajib diisi.");
     }
     if (tglLahirInput.length !== 6) {
       return setErrorVerif("Tanggal lahir harus 6 digit (contoh: 150106 untuk 15 Jan 2006).");
@@ -71,7 +71,7 @@ export default function StepDataDiri({ form, setForm, onVerifikasi }) {
     } catch (err) {
       const msg =
         err.response?.data?.message ||
-        "NIS/NISN atau tanggal lahir tidak sesuai. Periksa kembali.";
+        "NISN atau tanggal lahir tidak sesuai. Periksa kembali.";
       setErrorVerif(msg);
       setVerifikasi(null);
       onVerifikasi?.(false);
@@ -113,7 +113,7 @@ export default function StepDataDiri({ form, setForm, onVerifikasi }) {
               <p className="font-['Poppins',sans-serif] text-base font-bold text-[#12263f]">
                 {verifikasi.alumni.nama}
               </p>
-              <p className="text-[13px] text-[#8a9bb0]">NIS: {verifikasi.alumni.nis}</p>
+              <p className="text-[13px] text-[#8a9bb0]">NISN: {verifikasi.alumni.nis}</p>
             </div>
             <button
               type="button"
@@ -126,7 +126,7 @@ export default function StepDataDiri({ form, setForm, onVerifikasi }) {
         ) : (
           <form onSubmit={handleVerifikasi} noValidate>
             <p className="mb-4 text-[14px] text-[#5b7794]">
-              Masukkan NIS/NISN dan tanggal lahir kamu untuk melanjutkan.
+              Masukkan NISN dan tanggal lahir kamu untuk melanjutkan.
             </p>
 
             {errorVerif && (
@@ -138,7 +138,7 @@ export default function StepDataDiri({ form, setForm, onVerifikasi }) {
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <label htmlFor="nis-verif" className={labelCls}>
-                  NIS / NISN
+                  NISN
                 </label>
                 <input
                   id="nis-verif"
@@ -195,7 +195,7 @@ export default function StepDataDiri({ form, setForm, onVerifikasi }) {
               <p className="font-semibold text-[#12263f]">{verifikasi.alumni.nama}</p>
             </div>
             <div>
-              <p className="text-[13px] text-[#8a9bb0]">NIS / NISN</p>
+              <p className="text-[13px] text-[#8a9bb0]">NISN</p>
               <p className="font-semibold text-[#12263f]">{verifikasi.alumni.nis}</p>
             </div>
             <div>

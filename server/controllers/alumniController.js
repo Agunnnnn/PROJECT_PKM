@@ -55,7 +55,7 @@ export const verifikasiAlumniHandler = async (req, res, next) => {
 
     if (!nis || !tanggalLahir) {
       return res.status(400).json({
-        message: "NIS/NISN dan tanggal lahir wajib diisi.",
+        message: "NISN dan tanggal lahir wajib diisi.",
         valid: false,
       });
     }
@@ -73,7 +73,7 @@ export const verifikasiAlumniHandler = async (req, res, next) => {
 
     if (!alumni) {
       return res.status(401).json({
-        message: "NIS/NISN atau tanggal lahir tidak sesuai. Periksa kembali data Anda.",
+        message: "NISN atau tanggal lahir tidak sesuai. Periksa kembali data Anda.",
         valid: false,
       });
     }

@@ -57,28 +57,28 @@ const LANGKAH = [
         judul: "Data Diri",
         isi: "Isi nama, tahun lulus, dan jurusan.",
         Ikon: IkonDataDiri,
-        warnaIkon: "bg-[#1b3a9e] text-[#7dd3fc]",
+        warnaIkon: "bg-[#1b5f9a] text-sky-300",
     },
     {
         no: "02",
         judul: "Status Saat Ini",
         isi: "Pilih bekerja, kuliah, wirausaha, atau belum bekerja.",
         Ikon: IkonKoper,
-        warnaIkon: "bg-[#6b5546] text-[#fde68a]",
+        warnaIkon: "bg-[#2a8f8f] text-emerald-300",
     },
     {
         no: "03",
         judul: "Relevansi Jurusan",
         isi: "Nilai kecocokan pekerjaan dan kuliahmu dengan jurusan.",
         Ikon: IkonPapanKlip,
-        warnaIkon: "bg-[#6b1f7a] text-[#f5d0fe]",
+        warnaIkon: "bg-[#8a8a3a] text-amber-300",
     },
     {
         no: "04",
         judul: "Selesai dan Kirim",
         isi: "Tinjau data dan kirim jawabanmu.",
         Ikon: IkonKirim,
-        warnaIkon: "bg-[#0b6b8f] text-[#a5f3fc]",
+        warnaIkon: "bg-[#20639b] text-cyan-300",
     },
 ];
 
@@ -91,13 +91,13 @@ export default function PanduanPengisian({
     return (
         <section
             id="panduan"
-            className="bg-[#f0f8ff] px-5 py-12 sm:px-8 lg:px-10 lg:py-16"
+            className="bg-[#eaf3fd] px-5 py-12 sm:px-8 lg:px-10 lg:py-16"
         >
             <div className="mx-auto max-w-6xl">
                 <h2 className="text-3xl font-extrabold leading-tight text-[#0f1a24] sm:text-4xl lg:text-5xl">
                     {judul}
                 </h2>
-                <p className="mt-4 max-w-md text-base leading-relaxed text-slate-700 sm:text-lg">
+                <p className="mt-4 max-w-md text-base leading-relaxed text-slate-600 sm:text-lg">
                     {pengantar}
                 </p>
 
@@ -105,24 +105,24 @@ export default function PanduanPengisian({
                     {langkah.map(({ no, judul: j, isi, Ikon, warnaIkon }) => (
                         <li
                             key={no}
-                            className="relative overflow-hidden rounded-lg bg-[#1747e6] p-5 text-white shadow-[5px_5px_0_rgba(15,26,36,0.18)]"
+                            className="relative overflow-hidden rounded-xl bg-[#1769aa] p-6 text-white shadow-[4px_4px_0_rgba(15,26,36,0.25)]"
                         >
-                            {/* Lingkaran nomor di pojok kanan atas */}
+                            {/* Nomor besar sebagai dekorasi */}
                             <span
                                 aria-hidden="true"
-                                className="absolute -right-10 -top-10 flex h-[120px] w-[120px] items-end justify-start rounded-full bg-[#0f3cb8]/70 pb-6 pl-7 text-4xl font-extrabold text-white/25"
+                                className="pointer-events-none absolute -right-2 -top-1 flex h-24 w-24 select-none items-center justify-center rounded-full bg-black/10 text-5xl font-extrabold text-white/20"
                             >
-                                <span className="translate-x-1 translate-y-1">{no}</span>
+                                {no}
                             </span>
 
-                            <span
-                                className={`relative flex h-9 w-9 items-center justify-center rounded-md ${warnaIkon}`}
+                            <div
+                                className={`relative flex h-10 w-10 items-center justify-center rounded-lg ${warnaIkon}`}
                             >
                                 <Ikon className="h-5 w-5" />
-                            </span>
+                            </div>
 
-                            <h3 className="relative mt-4 text-xl font-bold sm:text-2xl">{j}</h3>
-                            <p className="relative mt-2 text-base leading-relaxed text-white/95">
+                            <h3 className="relative mt-4 text-2xl font-bold">{j}</h3>
+                            <p className="relative mt-3 text-sm leading-relaxed text-white/90">
                                 {isi}
                             </p>
                         </li>
