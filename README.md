@@ -332,5 +332,3 @@ File Excel yang diunggah ke `/api/alumni/import-excel` wajib memiliki header di 
   Pastikan backend berjalan di port 5000 sebelum membuka frontend di port 5173.
 - **Database Belum Terisi Data:**
   Jalankan `npm run migrate` di folder `server/` dan import `Project_PKM.sql` jika ingin menggunakan data bawaan awal 100 alumni SMK Puspita Bangsa.
-
-ini reno
