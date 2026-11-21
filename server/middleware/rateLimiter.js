@@ -77,3 +77,47 @@ export const rateLimitSurvey = (req, res, next) => {
 
   next();
 };
+
+// Rate Limiter untuk endpoint POST /alumni/verifikasi (mencegah brute-force tanggal lahir)
+const verifikasiAttempts = new Map();
+
+export const rateLimitVerifikasi = (req, res, next) => {
+  const ip =
+    req.ip ||
+    req.headers["x-forwarded-for"] ||
+    req.socket.remoteAddress ||
+    "global";
+  const now = Date.now();
+  const windowMs = 10 * 60 * 1000; // 10 menit
+  const maxRequests = 10; // Maksimal 10 percobaan per 10 menit per IP
+
+  const record = verifikasiAttempts.get(ip) || {
+    count: 0,
+    resetTime: now + windowMs,
+  };
+
+  if (now > record.resetTime) {
+    record.count = 1;
+    record.resetTime = now + windowMs;
+  } else {
+    record.count++;
+  }
+  verifikasiAttempts.set(ip, record);
+
+  const remaining = Math.max(0, maxRequests - record.count);
+  res.set("X-RateLimit-Limit", maxRequests.toString());
+  res.set("X-RateLimit-Remaining", remaining.toString());
+  res.set("X-RateLimit-Reset", Math.ceil(record.resetTime / 1000).toString());
+
+  if (record.count > maxRequests) {
+    const retryAfter = Math.ceil((record.resetTime - now) / 1000);
+    res.set("Retry-After", retryAfter.toString());
+    return res.status(429).json({
+      message:
+        "Terlalu banyak percobaan verifikasi identitas. Silakan coba beberapa saat lagi.",
+      valid: false,
+    });
+  }
+
+  next();
+};

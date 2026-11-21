@@ -16,6 +16,7 @@ import {
 } from "../controllers/alumniController.js";
 import { protect } from "../middleware/auth.js";
 import { handleUploadExcel } from "../middleware/upload.js";
+import { rateLimitVerifikasi } from "../middleware/rateLimiter.js";
 
 const router = express.Router();
 
@@ -24,7 +25,7 @@ router.get("/jurusan-list", getJurusanList);
 router.get("/tahun-list", getTahunList);
 router.get("/tahun-by-jurusan", getTahunByJurusan);
 router.get("/search", searchAlumni);
-router.post("/verifikasi", verifikasiAlumniHandler); // verifikasi NISN + tanggal lahir
+router.post("/verifikasi", rateLimitVerifikasi, verifikasiAlumniHandler); // verifikasi NISN + tanggal lahir (rate limited)
 router.post("/", findOrCreateAlumni); // form survei publik (find-or-create)
 
 // ─── Admin only ───────────────────────────────────────────────────────────────

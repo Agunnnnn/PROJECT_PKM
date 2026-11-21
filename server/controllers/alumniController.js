@@ -24,6 +24,16 @@ const norm = (str) =>
     .toLowerCase()
     .replace(/[\s_\-/]/g, "");
 
+// ─── Helper: Sanitasi nilai sel untuk mencegah CSV/Formula Injection (CWE-1236)
+export const sanitizeExcelValue = (val) => {
+  if (typeof val !== "string") return val;
+  if (val === "-") return "-";
+  if (/^[=+@\-\t\r]/.test(val)) {
+    return `'${val}`;
+  }
+  return val;
+};
+
 // ─── Temukan Alumni (dipakai form survei publik setelah verifikasi) ───────────
 // Tidak lagi membuat alumni baru — alumni hanya bisa ditambah admin via import Excel
 export const findOrCreateAlumni = async (req, res, next) => {
@@ -708,7 +718,7 @@ export const exportAlumniExcel = async (req, res, next) => {
       const bgArgb = index % 2 === 1 ? "FFF8FAFC" : "FFFFFFFF";
       rowData.forEach((val, colIdx) => {
         const cell = row.getCell(colIdx + 1);
-        cell.value = val;
+        cell.value = sanitizeExcelValue(val);
         cell.font = { name: "Arial", size: 9 };
         cell.fill = {
           type: "pattern",

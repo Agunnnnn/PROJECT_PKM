@@ -1,6 +1,7 @@
 import PDFDocument from "pdfkit";
 import ExcelJS from "exceljs";
 import { findAlumniByNis, createAlumni } from "../models/Alumni.js";
+import { sanitizeExcelValue } from "./alumniController.js";
 import {
     createSurveyEntry,
     getAllSurveyWithAlumni,
@@ -489,16 +490,16 @@ export const exportSurveyExcel = async (req, res, next) => {
             { width: 15 },
         ];
 
-        // Isi data mulai baris ke-4
+        // Isi data mulai baris ke-4 (dengan sanitasi Formula Injection)
         surveys.forEach((s) => {
             sheet.addRow([
-                s.nama,
-                s.jurusan,
-                s.status_saat_ini,
-                s.relevansi_jurusan || "-",
-                s.nama_perusahaan || s.nama_kampus || "-",
-                s.lama_tunggu_kerja || "-",
-                s.gaji || "-",
+                sanitizeExcelValue(s.nama),
+                sanitizeExcelValue(s.jurusan),
+                sanitizeExcelValue(s.status_saat_ini),
+                sanitizeExcelValue(s.relevansi_jurusan || "-"),
+                sanitizeExcelValue(s.nama_perusahaan || s.nama_kampus || "-"),
+                sanitizeExcelValue(s.lama_tunggu_kerja || "-"),
+                sanitizeExcelValue(s.gaji || "-"),
             ]);
         });
 
