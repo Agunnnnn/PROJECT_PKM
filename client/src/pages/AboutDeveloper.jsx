@@ -403,8 +403,8 @@ export default function AboutDeveloper() {
           </h3>
 
           <p className="mx-auto mt-4 max-w-lg text-base leading-relaxed text-slate-500 sm:text-lg">
-            Kami sangat terbuka untuk diskusi riset, kolaborasi pengembangan teknologi &
-            sistem, serta pertukaran ide untuk inovasi berikutnya.
+            Kami sangat terbuka untuk diskusi riset, kolaborasi pengembangan
+            teknologi & sistem, serta pertukaran ide untuk inovasi berikutnya.
           </p>
 
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
